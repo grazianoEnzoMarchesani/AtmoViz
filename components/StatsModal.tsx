@@ -31,7 +31,7 @@ const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, data, theme })
     Object.values(METRICS).forEach(metric => {
       const values = data
         .map(d => d[metric.key] as number | null)
-        .filter((v): v is number => v !== null);
+        .filter((v): v is number => typeof v === 'number' && !isNaN(v));
 
       if (values.length === 0) {
         stats[metric.key] = null;
@@ -52,7 +52,7 @@ const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, data, theme })
   // Prepare Scatter Plot Data
   const scatterData = useMemo(() => {
     return data
-      .filter(d => d[xMetric] !== null && d[yMetric] !== null)
+      .filter(d => d[xMetric] != null && d[yMetric] != null)
       .map(d => ({
         x: d[xMetric] as number,
         y: d[yMetric] as number,

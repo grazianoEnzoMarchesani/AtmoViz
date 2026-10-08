@@ -1,10 +1,13 @@
-import React, { useState, useMemo } from 'react';
-import { Marker, Popup, Tooltip as LeafletTooltip, Polyline } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useState, useMemo, useEffect } from 'react';
+import * as maplibregl from 'maplibre-gl';
 import { ChevronLeft, ChevronRight, Layers, Sparkles, MapPin } from 'lucide-react';
 import { GeoPhoto } from '../types';
+import MapMarker from './MapMarker';
 
 interface PhotoLayerProps {
+  map: maplibregl.Map;
+  // Changes after every base-style reload, when the connector lines must be added again
+  styleGeneration: number;
   photos: GeoPhoto[];
   isVisible: boolean;
   onPhotoClick?: (photo: GeoPhoto) => void;
@@ -66,10 +69,8 @@ const groupPhotosByProximity = (photos: GeoPhoto[]): PhotoGroup[] => {
 };
 
 // Single Photo Pin Icon
-const singlePhotoIcon = L.divIcon({
-  className: 'custom-photo-pin-container',
-  html: `
-    <div class="relative group cursor-pointer" style="transform: translate(-18px, -36px); width: 36px; height: 36px;">
+const singlePhotoIcon = `
+    <div class="relative group cursor-pointer" style="width: 36px; height: 36px;">
       <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-red-600 p-0.5 shadow-xl shadow-rose-500/40 ring-2 ring-white hover:scale-110 transition-transform duration-200 flex items-center justify-center text-white">
         <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -80,18 +81,11 @@ const singlePhotoIcon = L.divIcon({
       </div>
       <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-rose-500 rotate-45 rounded-xs shadow-md"></div>
     </div>
-  `,
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
-  popupAnchor: [0, -38],
-  tooltipAnchor: [0, -38]
-});
+  `;
 
 // Group Cluster Pin Icon
-const createClusterIcon = (count: number, isSpiderfied: boolean) => L.divIcon({
-  className: 'custom-cluster-pin-container',
-  html: `
-    <div class="relative group cursor-pointer" style="transform: translate(-22px, -44px); width: 44px; height: 44px;">
+const createClusterIcon = (count: number, isSpiderfied: boolean) => `
+    <div class="relative group cursor-pointer" style="width: 44px; height: 44px;">
       <!-- Stacked effect shadow cards -->
       <div class="absolute top-1 left-1 w-9 h-9 rounded-xl bg-rose-900/60 ring-1 ring-white/20 transform rotate-6"></div>
       <div class="absolute top-0.5 left-0.5 w-9 h-9 rounded-xl bg-amber-600/70 ring-1 ring-white/30 transform -rotate-3"></div>
@@ -115,21 +109,14 @@ const createClusterIcon = (count: number, isSpiderfied: boolean) => L.divIcon({
 
       <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 ${isSpiderfied ? 'bg-cyan-500' : 'bg-rose-600'} rotate-45 rounded-xs shadow-md"></div>
     </div>
-  `,
-  iconSize: [44, 44],
-  iconAnchor: [22, 44],
-  popupAnchor: [0, -42],
-  tooltipAnchor: [0, -42]
-});
+  `;
 
 // Spiderfied Item Icon with unique color palette per index
 const createSpiderfiedIcon = (index: number, total: number) => {
   const palette = SPIDER_PALETTES[index % SPIDER_PALETTES.length];
   
-  return L.divIcon({
-    className: 'custom-spider-pin-container',
-    html: `
-      <div class="relative group cursor-pointer animate-in zoom-in-50 duration-200" style="transform: translate(-18px, -36px); width: 36px; height: 36px;">
+  return `
+      <div class="relative group cursor-pointer animate-in zoom-in-50 duration-200" style="width: 36px; height: 36px;">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr ${palette.bg} p-0.5 shadow-xl ring-2 ring-white hover:scale-125 transition-transform duration-200 flex items-center justify-center text-white">
           <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center font-mono text-[11px] font-bold ${palette.text}">
             #${index + 1}
@@ -141,19 +128,18 @@ const createSpiderfiedIcon = (index: number, total: number) => {
         </div>
         <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-gradient-to-br ${palette.bg} rotate-45"></div>
       </div>
-    `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -38],
-    tooltipAnchor: [0, -38]
-  });
+    `;
 };
+
+const PinIcon: React.FC<{ html: string }> = ({ html }) => <div dangerouslySetInnerHTML={{ __html: html }} />;
 
 // Component for stacked cluster group
 const GroupClusterMarker: React.FC<{
+  map: maplibregl.Map;
+  styleGeneration: number;
   group: PhotoGroup;
   onPhotoClick?: (photo: GeoPhoto) => void;
-}> = ({ group, onPhotoClick }) => {
+}> = ({ map, styleGeneration, group, onPhotoClick }) => {
   const [isSpiderfied, setIsSpiderfied] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
@@ -175,6 +161,32 @@ const GroupClusterMarker: React.FC<{
 
   const currentPhoto = group.photos[activePhotoIdx] || group.photos[0];
 
+  // Dashed connector lines from the centre to each spiderfied pin, drawn on the map canvas
+  useEffect(() => {
+    if (!isSpiderfied) return;
+    const id = `atmo-spider-${group.id}`;
+    map.addSource(id, {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: spiderPositions.map(({ lat, lng, palette }) => ({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: [[group.centerLng, group.centerLat], [lng, lat]] },
+          properties: { color: palette.hex },
+        })),
+      },
+    });
+    map.addLayer({
+      id, type: 'line', source: id,
+      paint: { 'line-color': ['get', 'color'], 'line-width': 2.5, 'line-dasharray': [2, 2], 'line-opacity': 0.9 },
+    });
+    return () => {
+      // After a style reload the old layer is already gone
+      if (map.getLayer(id)) map.removeLayer(id);
+      if (map.getSource(id)) map.removeSource(id);
+    };
+  }, [map, styleGeneration, isSpiderfied, spiderPositions, group]);
+
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
     setActivePhotoIdx((prev) => (prev + 1) % group.photos.length);
@@ -188,27 +200,21 @@ const GroupClusterMarker: React.FC<{
   return (
     <>
       {/* Central Group Cluster Marker */}
-      <Marker
-        position={[group.centerLat, group.centerLng]}
-        icon={createClusterIcon(group.photos.length, isSpiderfied)}
-        eventHandlers={{
-          click: () => {
-            // Toggle spiderfied on click if preferred or let user use popup
-          }
-        }}
-      >
-        {/* Hover preview tooltip */}
-        {!isSpiderfied && (
-          <LeafletTooltip direction="top" offset={[0, -42]} opacity={0.95}>
-            <div className="bg-slate-900/90 text-white px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-lg border border-white/10 font-sans">
-              <Layers size={13} className="text-rose-400" />
-              <span>{group.photos.length} Foto Sovrapposte — Clicca per Aprire</span>
-            </div>
-          </LeafletTooltip>
-        )}
-
-        {/* Locked Interactive Popup on Click */}
-        <Popup autoPan={true} className="photo-leaflet-popup">
+      <MapMarker
+        map={map}
+        lngLat={[group.centerLng, group.centerLat]}
+        offset={46}
+        popupClassName="photo-map-popup"
+        autoPan
+        // Hover preview tooltip
+        tooltip={!isSpiderfied ? (
+          <div className="bg-slate-900/90 text-white px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-lg border border-white/10 font-sans">
+            <Layers size={13} className="text-rose-400" />
+            <span>{group.photos.length} Foto Sovrapposte — Clicca per Aprire</span>
+          </div>
+        ) : undefined}
+        // Locked Interactive Popup on Click
+        popup={
           <div className="w-[300px] p-1 text-white font-sans">
             {/* Header with Group Badge and Raggera Toggle */}
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 px-1">
@@ -314,46 +320,33 @@ const GroupClusterMarker: React.FC<{
               )}
             </div>
           </div>
-        </Popup>
-      </Marker>
+        }
+      >
+        <PinIcon html={createClusterIcon(group.photos.length, isSpiderfied)} />
+      </MapMarker>
 
-      {/* Spiderfied (Raggera) Radial Pins & Connector Vector Lines */}
+      {/* Spiderfied (Raggera) Radial Pins (connector lines are a map layer, see above) */}
       {isSpiderfied && (
         <>
           {spiderPositions.map(({ photo, lat, lng, index, palette }) => (
             <React.Fragment key={photo.id}>
-              {/* Connector dashed vector line from center to spiderfied pin with matching palette color */}
-              <Polyline
-                positions={[
-                  [group.centerLat, group.centerLng],
-                  [lat, lng]
-                ]}
-                pathOptions={{
-                  color: palette.hex,
-                  weight: 2.5,
-                  dashArray: '5, 5',
-                  opacity: 0.9
-                }}
-              />
-
               {/* Individual Spiderfied Marker with distinct palette */}
-              <Marker
-                position={[lat, lng]}
-                icon={createSpiderfiedIcon(index, group.photos.length)}
-                eventHandlers={{
-                  click: () => onPhotoClick && onPhotoClick(photo)
-                }}
-              >
-                {/* Hover Tooltip for Spiderfied Pin */}
-                <LeafletTooltip direction="top" offset={[0, -38]} opacity={0.95}>
+              <MapMarker
+                map={map}
+                lngLat={[lng, lat]}
+                offset={40}
+                popupClassName="photo-map-popup"
+        autoPan
+                onClick={() => onPhotoClick && onPhotoClick(photo)}
+                // Hover Tooltip for Spiderfied Pin
+                tooltip={
                   <div className={`px-2 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold font-mono border border-slate-700 flex items-center gap-1.5`}>
                     <span className={`w-2 h-2 rounded-full ${palette.badge}`}></span>
                     <span>Foto #{index + 1}: {photo.name}</span>
                   </div>
-                </LeafletTooltip>
-
-                {/* Locked Interactive Popup for Spiderfied Pin */}
-                <Popup autoPan={true} className="photo-leaflet-popup">
+                }
+                // Locked Interactive Popup for Spiderfied Pin
+                popup={
                   <div className="w-[280px] p-1 text-white font-sans">
                     <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-white/10">
                       <span className={`text-xs font-bold font-mono ${palette.text} flex items-center gap-1`}>
@@ -392,8 +385,10 @@ const GroupClusterMarker: React.FC<{
                       )}
                     </div>
                   </div>
-                </Popup>
-              </Marker>
+                }
+              >
+                <PinIcon html={createSpiderfiedIcon(index, group.photos.length)} />
+              </MapMarker>
             </React.Fragment>
           ))}
         </>
@@ -402,11 +397,11 @@ const GroupClusterMarker: React.FC<{
   );
 };
 
-const PhotoLayer: React.FC<PhotoLayerProps> = ({ photos, isVisible, onPhotoClick }) => {
-  if (!isVisible || photos.length === 0) return null;
-
+const PhotoLayer: React.FC<PhotoLayerProps> = ({ map, styleGeneration, photos, isVisible, onPhotoClick }) => {
   // Group photos by proximity
   const groups = useMemo(() => groupPhotosByProximity(photos), [photos]);
+
+  if (!isVisible || photos.length === 0) return null;
 
   return (
     <>
@@ -414,21 +409,20 @@ const PhotoLayer: React.FC<PhotoLayerProps> = ({ photos, isVisible, onPhotoClick
         if (group.photos.length === 1) {
           const photo = group.photos[0];
           return (
-            <Marker
+            <MapMarker
               key={photo.id}
-              position={[photo.lat, photo.lng]}
-              icon={singlePhotoIcon}
-              eventHandlers={{
-                click: () => onPhotoClick && onPhotoClick(photo)
-              }}
-            >
-              <LeafletTooltip direction="top" offset={[0, -36]} opacity={0.95}>
+              map={map}
+              lngLat={[photo.lng, photo.lat]}
+              offset={40}
+              popupClassName="photo-map-popup"
+        autoPan
+              onClick={() => onPhotoClick && onPhotoClick(photo)}
+              tooltip={
                 <div className="bg-slate-900/90 text-white px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 font-sans">
                   <span>📷 {photo.name}</span>
                 </div>
-              </LeafletTooltip>
-
-              <Popup autoPan={true} className="photo-leaflet-popup">
+              }
+              popup={
                 <div className="w-[280px] p-1 text-white font-sans">
                   <div className="relative w-full h-48 rounded-lg overflow-hidden bg-black flex items-center justify-center mb-2">
                     <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
@@ -440,8 +434,10 @@ const PhotoLayer: React.FC<PhotoLayerProps> = ({ photos, isVisible, onPhotoClick
                   {photo.dateTime && <p className="text-[10px] text-slate-400 mt-0.5 font-mono">📅 {photo.dateTime}</p>}
                   {(photo.model || photo.make) && <p className="text-[10px] text-amber-400 font-semibold mt-0.5">📷 FLIR {photo.model || photo.make}</p>}
                 </div>
-              </Popup>
-            </Marker>
+              }
+            >
+              <PinIcon html={singlePhotoIcon} />
+            </MapMarker>
           );
         }
 
@@ -449,6 +445,8 @@ const PhotoLayer: React.FC<PhotoLayerProps> = ({ photos, isVisible, onPhotoClick
         return (
           <GroupClusterMarker
             key={group.id}
+            map={map}
+            styleGeneration={styleGeneration}
             group={group}
             onPhotoClick={onPhotoClick}
           />

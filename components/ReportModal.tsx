@@ -43,7 +43,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
     Object.values(METRICS).forEach(metric => {
       const values = data
         .map(d => d[metric.key] as number | null)
-        .filter((v): v is number => v !== null);
+        .filter((v): v is number => typeof v === 'number' && !isNaN(v));
       
       if (values.length > 0) {
         const min = Math.min(...values);
@@ -137,7 +137,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
       const mapImgData = await toPng(mapElement, {
         cacheBust: true,
         filter: (node) => {
-           if (node instanceof HTMLElement && node.classList.contains('leaflet-control-container')) {
+           if (node instanceof HTMLElement && node.classList.contains('maplibregl-control-container')) {
              return false;
            }
            return true;

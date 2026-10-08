@@ -6,28 +6,28 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:map": "node scripts/check-map-style.mjs"
   },
   "dependencies": {
     "@google/genai": "latest",
-    "@types/leaflet.markercluster": "^1.5.6",
     "exifreader": "^4.41.3",
     "html-to-image": "latest",
     "html2canvas": "latest",
     "jspdf": "latest",
-    "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.554.0",
+    "maplibre-gl": "^6.13.0",
     "papaparse": "^5.5.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-leaflet": "^5.0.0",
     "recharts": "^3.4.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@types/leaflet": "^1.9.22",
+    "@maplibre/maplibre-gl-style-spec": "^26.4.4",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "esbuild": "^0.25.12",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

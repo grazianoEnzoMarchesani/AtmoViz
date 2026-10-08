@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, AlertTriangle, CopyPlus, RefreshCw, Maximize2, Minimize2, CheckCircle2 } from 'lucide-react';
 import { AppState, DataPoint, MetricKey, VisualizationMode, FilterState, Persona, GeoPhoto } from './types';
 import { METRICS, isDataComplete, alignSupplementaryData } from './utils/dataUtils';
-import MapBoard from './components/MapBoard';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import Timeline from './components/Timeline';
@@ -14,6 +13,9 @@ import PersonaSelector from './components/PersonaSelector';
 import ControlBar from './components/ControlBar';
 import Tooltip from './components/Tooltip';
 import TourGuide, { TourStep } from './components/TourGuide';
+
+// MapLibre is large and only needed once data is loaded: fetch it on demand
+const MapBoard = React.lazy(() => import('./components/MapBoard'));
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -345,21 +347,23 @@ const App: React.FC = () => {
       {/* 1. BASE LAYER: The Map */}
       <div id="map-board-container" className="w-full h-full absolute inset-0 z-0">
           {(allData.length > 0 || photos.length > 0) && (
-            <MapBoard 
-              data={data} 
-              currentIndex={currentIndex} 
-              isPlaying={isPlaying}
-              theme={theme} 
-              metricConfig={METRICS[selectedMetric]}
-              visualizationMode={visualizationMode}
-              useDynamicHeatmapRadius={useDynamicHeatmapRadius}
-              onPointSelect={handleSeek}
-              isFollowing={isFollowing}
-              onFollowChange={setIsFollowing}
-              persona={selectedPersona}
-              photos={photos}
-              isPhotoLayerVisible={isPhotoLayerVisible}
-            />
+            <React.Suspense fallback={null}>
+              <MapBoard 
+                data={data} 
+                currentIndex={currentIndex} 
+                isPlaying={isPlaying}
+                theme={theme} 
+                metricConfig={METRICS[selectedMetric]}
+                visualizationMode={visualizationMode}
+                useDynamicHeatmapRadius={useDynamicHeatmapRadius}
+                onPointSelect={handleSeek}
+                isFollowing={isFollowing}
+                onFollowChange={setIsFollowing}
+                persona={selectedPersona}
+                photos={photos}
+                isPhotoLayerVisible={isPhotoLayerVisible}
+              />
+            </React.Suspense>
           )}
       </div>
 
