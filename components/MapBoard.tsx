@@ -317,6 +317,7 @@ const MapBoard: React.FC<MapBoardProps> = ({
           attribution={MAP_ATTRIBUTION}
           url={theme === 'dark' ? MAP_TILES.dark : MAP_TILES.light}
           crossOrigin="anonymous"
+          className={theme === 'dark' ? 'osm-dark-tiles' : undefined}
         />
         
         {currentPoint && currentPoint.lat !== null && currentPoint.lng !== null && (
