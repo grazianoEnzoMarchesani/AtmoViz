@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Filter, Calendar, MapPinOff, Maximize2, ShieldCheck } from 'lucide-react';
+import { X } from 'lucide-react';
 import { FilterState } from '../types';
 import Tooltip from './Tooltip';
 
@@ -83,161 +83,135 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 
   if (!isOpen) return null;
 
-  const bgBase = theme === 'dark' ? 'bg-slate-900/95' : 'bg-white/95';
-  const textBase = theme === 'dark' ? 'text-white' : 'text-slate-900';
-  const borderBase = theme === 'dark' ? 'border-slate-700' : 'border-slate-200';
-  const inputBg = theme === 'dark' ? 'bg-slate-800 text-white border-slate-600' : 'bg-slate-50 text-slate-900 border-slate-300';
+  const isDark = theme === 'dark';
+  const ink = isDark ? 'text-slate-100' : 'text-[#1a1c1e]';
+  const muted = isDark ? 'text-slate-400' : 'text-[#50565c]';
+  const hairline = isDark ? 'border-white/10' : 'border-black/10';
+  const inputBg = isDark
+    ? 'bg-white/5 text-white border-white/15 focus:border-slate-100'
+    : 'bg-white/70 text-[#1a1c1e] border-black/15 focus:border-[#1a1c1e]';
+  const primaryBtn = isDark ? 'bg-slate-100 text-[#1a1c1e] hover:bg-white' : 'bg-[#1a1c1e] text-white hover:bg-black';
+  const switchOn = isDark ? 'bg-slate-100' : 'bg-[#1a1c1e]';
+  const switchOff = isDark ? 'bg-white/20' : 'bg-black/20';
+  const knobOn = isDark ? 'bg-[#1a1c1e]' : 'bg-white';
+
+  // Plain render helper (not a component), so the switch keeps focus across re-renders
+  const renderToggle = ({ checked, onToggle, title, hint, tooltip }: { checked: boolean; onToggle: () => void; title: string; hint: string; tooltip: string }) => (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div>
+        <div className="text-sm font-semibold">{title}</div>
+        <div className={`text-sm ${muted}`}>{hint}</div>
+      </div>
+      <Tooltip content={tooltip} theme={theme} position="left">
+        <button
+          role="switch"
+          aria-checked={checked}
+          aria-label={title}
+          onClick={onToggle}
+          className={`w-11 h-6 rounded-full relative flex-shrink-0 transition-colors ${checked ? switchOn : switchOff}`}
+        >
+          <span className={`absolute top-1 w-4 h-4 rounded-full transition-all ${checked ? `left-6 ${knobOn}` : 'left-1 bg-white'}`} />
+        </button>
+      </Tooltip>
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className={`
-        w-full max-w-md flex flex-col rounded-2xl shadow-2xl border
-        ${bgBase} ${borderBase} ${textBase}
-      `}>
-        
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="filter-title"
+        className={`w-full max-w-md flex flex-col rounded-3xl ${isDark ? 'av-glass-dark' : 'av-glass'} ${ink}`}
+      >
         {/* Header */}
-        <div className={`flex items-center justify-between p-4 border-b ${borderBase}`}>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-cyan-500/20 rounded-lg text-cyan-500">
-               <Filter size={20} />
-            </div>
-            <h2 className="text-xl font-bold">Filter Data</h2>
-          </div>
-          <button 
+        <div className="flex items-center justify-between px-6 pt-5 pb-2">
+          <h2 id="filter-title" className="text-xl font-semibold">Filter data</h2>
+          <button
             onClick={onClose}
-            className={`p-2 rounded-full hover:bg-slate-500/20 transition-colors`}
+            aria-label="Close filters"
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/[0.06]'}`}
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-            
+        <div className="px-6 pb-2">
             {/* Time Range */}
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider opacity-70">
-                        <Calendar size={14} />
-                        <span>Time Range</span>
-                    </div>
-                    <Tooltip content="Reset start/end to full range" theme={theme} position="left">
-                        <button 
-                            onClick={handleMaximizeTime}
-                            className="flex items-center gap-1 text-xs text-cyan-500 hover:text-cyan-400 font-bold border border-cyan-500/30 px-2 py-1 rounded hover:bg-cyan-500/10 transition-colors"
-                        >
-                            <Maximize2 size={12} />
-                            Full Range
-                        </button>
-                    </Tooltip>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                    <div>
-                        <label className="text-xs block mb-1 ml-1 opacity-60">Start Time</label>
-                        <input 
-                            type="datetime-local"
-                            value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
-                            className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-cyan-500 ${inputBg}`}
-                            style={{ colorScheme: theme }}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs block mb-1 ml-1 opacity-60">End Time</label>
-                        <input 
-                            type="datetime-local"
-                            value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
-                            className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-cyan-500 ${inputBg}`}
-                            style={{ colorScheme: theme }}
-                        />
-                    </div>
-                </div>
+            <div className="flex items-baseline justify-between pt-2">
+                <h3 className="text-sm font-semibold">Time range</h3>
+                <Tooltip content="Reset start/end to full range" theme={theme} position="left">
+                    <button
+                        onClick={handleMaximizeTime}
+                        className="text-sm underline underline-offset-2 hover:no-underline"
+                    >
+                        Use full range
+                    </button>
+                </Tooltip>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <label className="block">
+                    <span className={`text-sm block mb-1 ${muted}`}>Start</span>
+                    <input
+                        type="datetime-local"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className={`w-full h-11 px-3 rounded-xl border outline-none transition-colors ${inputBg}`}
+                        style={{ colorScheme: theme }}
+                    />
+                </label>
+                <label className="block">
+                    <span className={`text-sm block mb-1 ${muted}`}>End</span>
+                    <input
+                        type="datetime-local"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className={`w-full h-11 px-3 rounded-xl border outline-none transition-colors ${inputBg}`}
+                        style={{ colorScheme: theme }}
+                    />
+                </label>
             </div>
 
             {/* Toggles */}
-            <div className="space-y-3">
-                {/* Toggle GPS */}
-                <div className={`p-4 rounded-xl border flex items-center justify-between ${borderBase} ${theme === 'dark' ? 'bg-slate-800/30' : 'bg-slate-50'}`}>
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${hideNoGps ? 'bg-cyan-500 text-black' : 'bg-slate-500/20 text-slate-500'}`}>
-                            <MapPinOff size={18} />
-                        </div>
-                        <div>
-                            <div className="font-bold text-sm">Hide Missing GPS</div>
-                            <div className="text-xs opacity-60">Exclude points without coordinates</div>
-                        </div>
-                    </div>
-                    
-                    <Tooltip content="Toggle GPS Filter" theme={theme} position="left">
-                        <button 
-                            onClick={() => setHideNoGps(!hideNoGps)}
-                            className={`
-                                w-12 h-6 rounded-full relative transition-colors duration-300
-                                ${hideNoGps ? 'bg-cyan-500' : (theme === 'dark' ? 'bg-slate-700' : 'bg-slate-300')}
-                            `}
-                        >
-                            <div className={`
-                                absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300
-                                ${hideNoGps ? 'left-7' : 'left-1'}
-                            `} />
-                        </button>
-                    </Tooltip>
-                </div>
-
-                {/* Toggle Strict Mode (Complete Data) */}
-                <div className={`p-4 rounded-xl border flex items-center justify-between ${borderBase} ${theme === 'dark' ? 'bg-slate-800/30' : 'bg-slate-50'}`}>
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${onlyCompleteData ? 'bg-green-500 text-white' : 'bg-slate-500/20 text-slate-500'}`}>
-                            <ShieldCheck size={18} />
-                        </div>
-                        <div>
-                            <div className="font-bold text-sm">Strict Data Mode</div>
-                            <div className="text-xs opacity-60">Show only complete datasets (no nulls)</div>
-                        </div>
-                    </div>
-                    
-                    <Tooltip content="Toggle Null Value Filter" theme={theme} position="left">
-                        <button 
-                            onClick={() => setOnlyCompleteData(!onlyCompleteData)}
-                            className={`
-                                w-12 h-6 rounded-full relative transition-colors duration-300
-                                ${onlyCompleteData ? 'bg-green-500' : (theme === 'dark' ? 'bg-slate-700' : 'bg-slate-300')}
-                            `}
-                        >
-                            <div className={`
-                                absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300
-                                ${onlyCompleteData ? 'left-7' : 'left-1'}
-                            `} />
-                        </button>
-                    </Tooltip>
-                </div>
+            <div className={`mt-5 border-t ${hairline} divide-y ${isDark ? 'divide-white/10' : 'divide-black/10'}`}>
+                {renderToggle({
+                    checked: hideNoGps,
+                    onToggle: () => setHideNoGps(!hideNoGps),
+                    title: 'Hide points without GPS',
+                    hint: 'Exclude readings that have no coordinates',
+                    tooltip: 'Toggle GPS filter',
+                })}
+                {renderToggle({
+                    checked: onlyCompleteData,
+                    onToggle: () => setOnlyCompleteData(!onlyCompleteData),
+                    title: 'Complete readings only',
+                    hint: 'Show only points where every sensor has a value',
+                    tooltip: 'Toggle null value filter',
+                })}
             </div>
-
         </div>
 
         {/* Footer */}
-        <div className={`p-4 border-t ${borderBase} flex gap-3`}>
+        <div className={`px-6 py-4 border-t ${hairline} flex items-center justify-end gap-2`}>
             <Tooltip content="Revert to original state" theme={theme}>
-                <button 
+                <button
                     onClick={handleReset}
-                    className={`flex-1 py-3 px-6 rounded-xl font-bold transition-colors ${theme === 'dark' ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
+                    className={`h-11 px-4 rounded-xl text-sm font-medium transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/[0.06]'}`}
                 >
-                    Reset Defaults
+                    Reset defaults
                 </button>
             </Tooltip>
-            
-            <Tooltip content="Save and Close" theme={theme}>
-                <button 
+            <Tooltip content="Save and close" theme={theme}>
+                <button
                     onClick={handleApply}
-                    className="flex-[2] py-3 px-8 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold shadow-lg shadow-cyan-500/20 transition-colors"
+                    className={`h-11 px-6 rounded-xl text-sm font-semibold transition-colors ${primaryBtn}`}
                 >
-                    Apply Filters
+                    Apply filters
                 </button>
             </Tooltip>
         </div>
-
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Info, CheckCircle, BookOpen, Shield, Wind, Droplets, User } from 'lucide-react';
+import { X } from 'lucide-react';
 import { PERSONA_STANDARDS, METRICS } from '../utils/dataUtils';
 import { DataPoint, MetricKey, Persona } from '../types';
 
@@ -139,53 +139,67 @@ const ReferenceGuide: React.FC<ReferenceGuideProps> = ({
     return val >= min && val < max;
   };
 
-  const bgBase = theme === 'dark' ? 'bg-slate-900/90' : 'bg-white/90';
-  const textBase = theme === 'dark' ? 'text-white' : 'text-slate-900';
-  const subText = theme === 'dark' ? 'text-slate-300' : 'text-slate-600';
-  const borderBase = theme === 'dark' ? 'border-slate-700' : 'border-slate-200';
+  const isDark = theme === 'dark';
+  const ink = isDark ? 'text-slate-100' : 'text-[#1a1c1e]';
+  const muted = isDark ? 'text-slate-400' : 'text-[#50565c]';
+  const hairline = isDark ? 'border-white/10' : 'border-black/10';
+
+  // Same ranges, shown low → high on the scale (AQS is stored high → low)
+  const scale = [...activeStandards].sort((a, b) => a.min - b.min);
+  const activeIdx = scale.findIndex(r => isRowActive(r.min, r.max, activeTab, currentValue));
+  const activeRange = activeIdx >= 0 ? scale[activeIdx] : null;
+  const markerPct = (() => {
+    if (activeIdx < 0 || currentValue === null) return null;
+    const r = scale[activeIdx];
+    const span = r.max > 500 ? Math.max(r.min, 1) : r.max - r.min;
+    const frac = Math.min(1, Math.max(0, (currentValue - r.min) / span));
+    return ((activeIdx + frac) / scale.length) * 100;
+  })();
+  const formatRange = (min: number, max: number) => (max > 500 ? `> ${min}` : `${min}–${max}`);
+  const tintStyle = (activeRange ? { ['--tint' as any]: activeRange.color } : {}) as React.CSSProperties;
+  const labelStyle = activeRange
+    ? { color: `color-mix(in srgb, ${activeRange.color} 62%, ${isDark ? '#ffffff' : '#1a1c1e'})` }
+    : undefined;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className={`
-        w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border
-        ${bgBase} ${borderBase} ${textBase}
-      `}>
-        
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="guide-title"
+        className={`w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl ${isDark ? 'av-tint-dark' : 'av-tint'} ${ink}`}
+        style={tintStyle}
+      >
         {/* Header */}
-        <div className={`flex items-center justify-between p-6 border-b ${borderBase}`}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-cyan-500/20 rounded-full text-cyan-500">
-               <BookOpen size={24} />
-            </div>
-            <div>
-                <h2 className="text-2xl font-bold">Environmental Guide</h2>
-                <div className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} flex items-center gap-1.5 mt-0.5`}>
-                    <span>Active Profile:</span>
-                    <span className="font-bold uppercase text-cyan-500 bg-cyan-500/10 px-1.5 py-0.5 rounded text-xs">
-                        {persona}
-                    </span>
-                </div>
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
+          <div>
+            <h2 id="guide-title" className="text-xl font-semibold">Health thresholds</h2>
+            <div className={`text-sm mt-0.5 ${muted}`}>
+              Profile: <span className={`font-semibold ${ink}`}>{persona.charAt(0).toUpperCase() + persona.slice(1)}</span>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
-            className={`p-2 rounded-full hover:bg-slate-500/20 transition-colors`}
+            aria-label="Close guide"
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/[0.06]'}`}
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className={`flex items-center gap-2 px-6 pt-4 pb-0 overflow-x-auto no-scrollbar border-b ${borderBase}`}>
+        <div role="tablist" className={`flex items-center gap-1 px-4 overflow-x-auto no-scrollbar border-b ${hairline}`}>
             {availableTabs.map(key => (
                 <button
                     key={key}
+                    role="tab"
+                    aria-selected={activeTab === key}
                     onClick={() => setActiveTab(key)}
                     className={`
-                        px-4 py-3 font-bold text-sm uppercase tracking-wider border-b-2 transition-all whitespace-nowrap
-                        ${activeTab === key 
-                            ? 'border-cyan-500 text-cyan-500' 
-                            : 'border-transparent text-slate-500 hover:text-slate-400'}
+                        px-3 h-11 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap
+                        ${activeTab === key
+                            ? `font-semibold ${isDark ? 'border-slate-100' : 'border-[#1a1c1e]'}`
+                            : `border-transparent ${muted} ${isDark ? 'hover:text-white' : 'hover:text-[#1a1c1e]'}`}
                     `}
                 >
                     {METRICS[key]?.label || key}
@@ -194,111 +208,83 @@ const ReferenceGuide: React.FC<ReferenceGuideProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-            
-            {/* Current Value Header */}
-            <div className="flex items-center justify-between mb-6 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-transparent border border-cyan-500/20">
-               <span className="text-sm font-bold uppercase text-cyan-500">Current Reading</span>
-               <div className="font-mono text-xl font-bold">
-                  {currentValue !== null ? currentValue : '--'}
-                  <span className="text-xs ml-1 opacity-70">
-                     {METRICS[activeTab]?.unit || ''}
-                  </span>
-               </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+
+            {/* Current reading */}
+            <div className="flex items-end justify-between gap-4 flex-wrap">
+              <div>
+                <div className={`text-sm ${muted}`}>Now</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[44px] leading-none font-semibold tracking-tight">{currentValue !== null ? currentValue : '—'}</span>
+                  <span className={`text-sm ${muted}`}>{METRICS[activeTab]?.unit || ''}</span>
+                </div>
+              </div>
+              <div className="text-lg font-semibold pb-1" style={labelStyle}>
+                {activeRange ? activeRange.label : (currentValue === null ? 'No reading at this point' : '')}
+              </div>
             </div>
 
-            {/* Standards Table */}
-            <div className="space-y-3 mb-8">
-                <h3 className="text-sm font-bold uppercase tracking-wider opacity-60 mb-2 flex items-center gap-2">
-                    <Shield size={14} />
-                    Health Thresholds ({persona})
-                </h3>
-                {activeStandards.map((range, idx) => {
-                    const active = isRowActive(range.min, range.max, activeTab, currentValue);
-                    
+            {/* Scale: one segment per range, marker on the current value */}
+            <div className="mt-5" aria-hidden="true">
+              <div className="relative h-3.5">
+                {markerPct !== null && (
+                  <div
+                    className="absolute top-0 -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px]"
+                    style={{ left: `${markerPct}%`, borderTopColor: isDark ? '#f1f5f9' : '#1a1c1e' }}
+                  />
+                )}
+              </div>
+              <div className="flex gap-0.5 h-2.5 rounded-full overflow-hidden">
+                {scale.map((r, i) => (
+                  <div key={i} className="flex-1" style={{ backgroundColor: r.color, opacity: i === activeIdx ? 1 : 0.45 }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Ranges */}
+            <ol className="mt-4 flex flex-col">
+                {scale.map((range, idx) => {
+                    const active = idx === activeIdx;
                     return (
-                        <div 
+                        <li
                             key={idx}
-                            className={`
-                                relative p-3 rounded-lg border transition-all duration-300
-                                flex flex-col md:flex-row md:items-center gap-3
-                                ${active 
-                                    ? `border-[${range.color}] bg-[${range.color}]/10 ring-1 ring-[${range.color}] shadow-lg scale-[1.01]` 
-                                    : `${theme === 'dark' ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'} opacity-90`}
-                            `}
-                            style={{ 
-                                borderColor: active ? range.color : undefined,
-                                backgroundColor: active ? `${range.color}15` : undefined 
-                            }}
+                            className={`grid grid-cols-[12px_minmax(0,9rem)_1fr_auto] items-baseline gap-3 px-3 py-2.5 rounded-xl ${active ? (isDark ? 'bg-white/10' : 'bg-white/60') : ''}`}
                         >
-                            {/* Range Badge */}
-                            <div className="min-w-[100px]">
-                                <div 
-                                    className="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm"
-                                    style={{ backgroundColor: range.color }}
-                                >
-                                    {range.min} - {range.max > 500 ? '>' : range.max}
-                                </div>
-                                <div className="text-sm font-bold mt-0.5">{range.label}</div>
-                            </div>
-
-                            {/* Description */}
-                            <div className={`flex-1 text-xs leading-relaxed ${subText}`}>
-                                {range.desc}
-                            </div>
-
-                            {/* Active Indicator */}
-                            {active && (
-                                <div className="absolute right-3 top-3 text-cyan-500 animate-pulse hidden md:block">
-                                    <CheckCircle size={16} fill="currentColor" className="text-white" />
-                                </div>
-                            )}
-                        </div>
+                            <span className="w-2.5 h-2.5 rounded-[3px] self-center" style={{ backgroundColor: range.color }} />
+                            <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{range.label}</span>
+                            <span className={`text-sm ${muted}`}>{range.desc}</span>
+                            <span className={`text-sm whitespace-nowrap ${active ? 'font-semibold' : muted}`}>{formatRange(range.min, range.max)}</span>
+                        </li>
                     );
                 })}
-            </div>
+            </ol>
 
-            {/* Advice Section (if available) */}
+            {/* Advice (if available) */}
             {advice && (
-                <div className={`mt-8 pt-6 border-t ${borderBase} animate-in fade-in slide-in-from-bottom-4`}>
-                    <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                        {activeTab === 'voc' && <Wind size={20} className="text-cyan-500" />}
-                        {activeTab.startsWith('pm') && <Shield size={20} className="text-cyan-500" />}
-                        {activeTab === 'humidity' && <Droplets size={20} className="text-cyan-500" />}
-                        {advice.title}
-                    </h3>
-                    <p className={`text-sm mb-6 leading-relaxed opacity-80`}>
-                        {advice.intro}
-                    </p>
+                <div className={`mt-6 pt-5 border-t ${hairline}`}>
+                    <h3 className="text-base font-semibold">{advice.title}</h3>
+                    <p className={`text-sm mt-1.5 leading-relaxed ${muted}`}>{advice.intro}</p>
 
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="mt-4 grid gap-5 sm:grid-cols-2">
                         {advice.sections.map((section, idx) => (
-                            <div key={idx} className={`p-5 rounded-xl border ${theme === 'dark' ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                <h4 className="font-bold text-base mb-3 text-cyan-600 dark:text-cyan-400">
-                                    {section.title}
-                                </h4>
+                            <section key={idx}>
+                                <h4 className="text-sm font-semibold mb-2">{section.title}</h4>
                                 {Array.isArray(section.content) ? (
-                                    <ul className="space-y-2">
+                                    <ul className={`space-y-1.5 text-sm leading-snug list-disc pl-4 ${isDark ? 'marker:text-slate-500' : 'marker:text-[#8a9096]'}`}>
                                         {section.content.map((item, i) => (
-                                            <li key={i} className={`text-sm flex items-start gap-2 ${subText}`}>
-                                                <span className="block w-1.5 h-1.5 mt-1.5 rounded-full bg-cyan-500 flex-shrink-0" />
-                                                <span>{item}</span>
-                                            </li>
+                                            <li key={i}>{item}</li>
                                         ))}
                                     </ul>
                                 ) : (
-                                    <p className={`text-sm leading-relaxed ${subText}`}>
-                                        {section.content}
-                                    </p>
+                                    <p className="text-sm leading-relaxed">{section.content}</p>
                                 )}
-                            </div>
+                            </section>
                         ))}
                     </div>
                 </div>
             )}
 
         </div>
-
       </div>
     </div>
   );

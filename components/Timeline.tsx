@@ -5,6 +5,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip as RechartsTooltip
 import { DataPoint, MetricConfig, FilterState, Persona } from '../types';
 import { PLAYBACK_SPEEDS } from '../constants';
 import { isDataComplete, getQualityColor } from '../utils/dataUtils';
+import { formatTime, formatDate } from '../utils/timeFormat';
 import Tooltip from './Tooltip';
 
 interface TimelineProps {
@@ -57,7 +58,7 @@ const Timeline: React.FC<TimelineProps> = ({
       originalIndex: d.id,
       timestamp: d.timestamp,
       value: d[metricConfig.key] as number ?? null,
-      date: d.dateStr.split(' ')[1]
+      date: formatTime(d.timestamp)
     }));
   }, [allData, metricConfig.key, filters.onlyCompleteData]);
 
@@ -142,21 +143,18 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [isDragging, handleSeekInteraction]);
 
 
-  // Glassmorphism Theme Application
-  // Updated to use higher opacity white for cleaner look while keeping blur
-  const glassContainer = theme === 'dark'
-    ? 'bg-slate-900/80 border-t md:border border-white/10 shadow-[0_-4px_30px_rgba(0,0,0,0.5)]'
-    : 'bg-white/85 border-t md:border border-white/40 shadow-[0_-4px_30px_rgba(31,38,135,0.15)]';
+  // Neutral glass over the map; colour comes only from the data (curve, cursor)
+  const glassContainer = theme === 'dark' ? 'av-glass-dark' : 'av-glass';
 
-  const backdropBlur = 'backdrop-blur-2xl';
+  const backdropBlur = '';
   
-  const textColor = theme === 'dark' ? 'text-white' : 'text-slate-800';
-  const iconColor = theme === 'dark' ? 'text-cyan-400' : 'text-blue-600';
+  const textColor = theme === 'dark' ? 'text-white' : 'text-[#1a1c1e]';
+  const iconColor = theme === 'dark' ? 'text-slate-200' : 'text-[#1a1c1e]';
   
-  // New Brush Styling
-  const brushStroke = theme === 'dark' ? '#22d3ee' : '#2563eb';
-  const brushFill = theme === 'dark' ? '#0f172a' : '#cbd5e1';
-  const brushOpacity = theme === 'dark' ? 0.7 : 0.6;
+  // Brush in ink, so it reads as a control and not as data
+  const brushStroke = theme === 'dark' ? '#e6e8ea' : '#1a1c1e';
+  const brushFill = theme === 'dark' ? '#0f1114' : '#d9dcdf';
+  const brushOpacity = theme === 'dark' ? 0.6 : 0.5;
 
   // Calculate cursor position percentage
   const progressPercent = filteredData.length > 1 
@@ -171,15 +169,15 @@ const Timeline: React.FC<TimelineProps> = ({
     <div id="timeline-container" className={`
       w-full pointer-events-auto
       ${glassContainer} ${backdropBlur}
-      p-4 flex flex-col gap-2 transition-all z-20
-      md:rounded-2xl md:mb-6 md:w-auto md:mx-6
+      p-3 md:p-4 flex flex-col gap-2 transition-all z-20
+      rounded-t-2xl md:rounded-2xl md:mb-5 md:w-auto md:mx-5
     `}>
       
       {/* Chart Area with Drag-to-Seek Overlay */}
       {/* Changed bg-black/5 to bg-white/50 for a brighter chart background */}
-      <div className="h-32 md:h-36 w-full relative select-none group overflow-hidden rounded-lg bg-white/50 dark:bg-white/5" ref={chartContainerRef}>
-        <div className="absolute top-0 left-0 text-[10px] font-bold opacity-50 z-20 pointer-events-none flex items-center gap-1 px-1">
-            <span>TIMELINE & FILTER</span>
+      <div className={`h-32 md:h-36 w-full relative select-none group overflow-hidden rounded-xl ${theme === 'dark' ? 'bg-white/[0.04]' : 'bg-white/60'}`} ref={chartContainerRef}>
+        <div className={`absolute top-1 left-2 text-xs z-20 pointer-events-none ${theme === 'dark' ? 'text-slate-400' : 'text-[#50565c]'}`}>
+            {metricConfig.label} · drag the handles below to filter
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
@@ -240,7 +238,7 @@ const Timeline: React.FC<TimelineProps> = ({
 
         {/* Current Position Cursor & Handle */}
         <div 
-          className="absolute top-0 bottom-[25px] w-[2px] pointer-events-none transition-all duration-75 z-10 shadow-[0_0_6px_rgba(0,0,0,0.5)]"
+          className="absolute top-0 bottom-[25px] w-[2px] pointer-events-none transition-all duration-75 z-10"
           style={{ left: `${progressPercent}%`, backgroundColor: riskColor }}
         >
             {/* Time Bubble (Visible on Drag/Hover) */}
@@ -252,11 +250,11 @@ const Timeline: React.FC<TimelineProps> = ({
             `}
             style={{ backgroundColor: riskColor }}
             >
-                {filteredData[currentIndex]?.dateStr.split(' ')[1]}
+                {formatTime(filteredData[currentIndex]?.timestamp)}
             </div>
 
             {/* Drag Handle Dot */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow-md" style={{ backgroundColor: riskColor }} />
+            <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border-2 ${theme === 'dark' ? 'border-[#181b1f]' : 'border-white'}`} style={{ backgroundColor: riskColor }} />
         </div>
       </div>
 
@@ -264,15 +262,16 @@ const Timeline: React.FC<TimelineProps> = ({
       <div className="flex items-center justify-between px-1 mt-1">
         
         {/* Left: Speed Controls */}
-        <div className="flex items-center gap-1">
+        <div role="group" aria-label="Playback speed" className={`flex items-center gap-0.5 p-0.5 rounded-xl ${theme === 'dark' ? 'bg-white/10' : 'bg-black/[0.06]'}`}>
              {PLAYBACK_SPEEDS.slice(0, 3).map(speed => (
                <Tooltip key={speed} content={`Set Speed ${speed}x`} theme={theme}>
                    <button
                      onClick={() => onSpeedChange(speed)}
-                     className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors ${
+                     aria-pressed={playbackSpeed === speed}
+                     className={`h-8 min-w-[40px] px-2 text-[13px] rounded-[10px] transition-colors ${
                        playbackSpeed === speed 
-                        ? (theme === 'dark' ? 'bg-cyan-500 text-black border-cyan-400' : 'bg-blue-600 text-white border-blue-500')
-                        : (theme === 'dark' ? 'border-white/10 text-slate-500 hover:text-white hover:border-white/30' : 'border-black/10 text-slate-400 hover:text-black hover:border-black/30')
+                        ? (theme === 'dark' ? 'bg-slate-100 text-[#1a1c1e] font-semibold' : 'bg-white text-[#1a1c1e] font-semibold shadow-sm')
+                        : (theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-[#50565c] hover:text-[#1a1c1e]')
                      }`}
                    >
                      {speed}x
@@ -296,13 +295,13 @@ const Timeline: React.FC<TimelineProps> = ({
                 <button 
                   onClick={onTogglePlay}
                   className={`
-                    p-4 rounded-full shadow-xl transition-all transform active:scale-95 flex items-center justify-center border border-white/20
+                    w-12 h-12 rounded-full transition-colors flex items-center justify-center
                     ${theme === 'dark' 
-                        ? 'bg-gradient-to-tr from-cyan-600 to-cyan-400 text-black shadow-cyan-500/20' 
-                        : 'bg-gradient-to-tr from-blue-700 to-blue-500 text-white shadow-blue-500/30'} 
+                        ? 'bg-slate-100 text-[#1a1c1e] hover:bg-white' 
+                        : 'bg-[#1a1c1e] text-white hover:bg-black'} 
                   `}
                 >
-                  {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
+                  {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
                 </button>
             </Tooltip>
 
@@ -318,11 +317,11 @@ const Timeline: React.FC<TimelineProps> = ({
 
         {/* Right: Date/Time Info */}
         <div className="flex flex-col items-end">
-            <div className={`font-mono text-base font-bold ${textColor}`}>
-               {filteredData[currentIndex]?.dateStr.split(' ')[1] || "--:--:--"}
+            <div className={`text-base font-semibold ${textColor}`}>
+               {formatTime(filteredData[currentIndex]?.timestamp) || "--:--:--"}
             </div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-               {filteredData[currentIndex]?.dateStr.split(' ')[0] || "----/--/--"}
+            <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-[#50565c]'}`}>
+               {formatDate(filteredData[currentIndex]?.timestamp) || "----/--/--"}
             </div>
         </div>
       </div>

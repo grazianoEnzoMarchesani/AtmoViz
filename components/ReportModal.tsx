@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, FileText, Download, Loader2, BrainCircuit, CheckCircle, BarChart3, ArrowDownToLine, ArrowUpToLine } from 'lucide-react';
+import { X, Loader2, CheckCircle } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { jsPDF } from "jspdf";
 import { toPng } from 'html-to-image';
@@ -8,6 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { DataPoint, MetricKey, Persona, QualityRange } from '../types';
 import { METRICS, PERSONA_STANDARDS, getQualityColor } from '../utils/dataUtils';
 import Tooltip from './Tooltip';
+import { formatTime, formatDateTime } from '../utils/timeFormat';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
     const step = Math.ceil(data.length / MAX_POINTS);
     
     return data.filter((_, i) => i % step === 0).map(d => ({
-      name: d.dateStr.split(' ')[1], // Just time for X axis
+      name: formatTime(d.timestamp), // Just time for X axis
       ...d
     }));
   }, [data, isOpen]);
@@ -69,7 +70,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
       setError(null);
 
       const statsStr = JSON.stringify(stats, null, 2);
-      const dateRange = `${data[0]?.dateStr} to ${data[data.length - 1]?.dateStr}`;
+      const dateRange = `${formatDateTime(data[0]?.timestamp)} to ${formatDateTime(data[data.length - 1]?.timestamp)}`;
 
       // Determine active standards based on selected Persona
       const activeStandards = PERSONA_STANDARDS[persona];
@@ -178,7 +179,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
 
       // --- PAGE 1: Overview & Map ---
       doc.setFontSize(22);
-      doc.setTextColor(0, 150, 255);
+      doc.setTextColor(26, 28, 30);
       doc.text("AtmoViz Environmental Report", margin, yPos);
       
       yPos += 10;
@@ -251,13 +252,17 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
 
   if (!isOpen) return null;
 
-  const bgBase = theme === 'dark' ? 'bg-slate-900/95' : 'bg-white/95';
-  const textBase = theme === 'dark' ? 'text-white' : 'text-slate-900';
-  const borderBase = theme === 'dark' ? 'border-slate-700' : 'border-slate-200';
-  const subText = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
+  const isDark = theme === 'dark';
+  const ink = isDark ? 'text-slate-100' : 'text-[#1a1c1e]';
+  const subText = isDark ? 'text-slate-400' : 'text-[#50565c]';
+  const hairline = isDark ? 'border-white/10' : 'border-black/10';
+  const primaryBtn = isDark ? 'bg-slate-100 text-[#1a1c1e] hover:bg-white' : 'bg-[#1a1c1e] text-white hover:bg-black';
+  const personaLabel = persona.charAt(0).toUpperCase() + persona.slice(1);
+  const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2).replace(/\.?0+$/, ''));
+  const isWorking = step === 'analyzing' || step === 'generating' || step === 'capturing';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40">
       
       {/* Hidden Container for capturing Charts & Metrics */}
       {/* 
@@ -278,17 +283,20 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
                 zIndex: -9999,
                 opacity: 0,
                 pointerEvents: 'none',
+                fontFamily: "'Familjen Grotesk', system-ui, sans-serif",
+                color: '#1a1c1e',
             }}
         >
             {/* SECTION 1: CHARTS CAPTURE */}
             <div id="report-charts-capture" className="p-10 bg-white">
-                <h2 className="text-3xl font-bold text-slate-800 mb-8 border-b pb-4">Detailed Data Trends</h2>
-                <div className="grid grid-cols-2 gap-8">
+                <h2 className="text-3xl font-semibold mb-1">Data trends</h2>
+                <p className="text-base text-[#50565c] mb-8">{formatDateTime(data[0]?.timestamp)} to {formatDateTime(data[data.length - 1]?.timestamp)}</p>
+                <div className="grid grid-cols-2 gap-x-10 gap-y-8">
                     {Object.values(METRICS).map((metric) => (
-                        <div key={metric.key} className="flex flex-col border border-slate-200 rounded-2xl p-5 bg-slate-50/50 shadow-sm break-inside-avoid">
-                            <div className="flex items-center justify-between mb-4">
-                                <h4 className="font-bold text-slate-700 uppercase text-sm">{metric.label}</h4>
-                                <span className="text-xs font-mono font-bold text-slate-500 bg-white px-2 py-1 rounded border">{metric.unit}</span>
+                        <div key={metric.key} className="flex flex-col border-t border-black/10 pt-4 break-inside-avoid">
+                            <div className="flex items-baseline justify-between mb-3">
+                                <h4 className="font-semibold text-base">{metric.label}</h4>
+                                <span className="text-sm text-[#50565c]">{metric.unit}</span>
                             </div>
                             <div className="w-full flex justify-center">
                                 <AreaChart 
@@ -302,14 +310,14 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
                                             <stop offset="95%" stopColor={metric.colorMid} stopOpacity={0}/>
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <CartesianGrid vertical={false} stroke="rgba(26,28,30,0.08)" />
                                     <XAxis dataKey="name" hide />
                                     <YAxis 
                                         domain={['auto', 'auto']} 
-                                        tick={{fontSize: 10, fill: '#94a3b8'}} 
+                                        tick={{fontSize: 11, fill: '#50565c'}} 
                                         tickLine={false}
                                         axisLine={false}
-                                        width={30}
+                                        width={34}
                                     />
                                     <Area 
                                         type="monotone" 
@@ -326,10 +334,21 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
                 </div>
             </div>
 
-            {/* SECTION 2: METRICS CAPTURE (Styled like App Cards) */}
+            {/* SECTION 2: METRICS CAPTURE (same table as the Data analysis window) */}
             <div id="report-metrics-capture" className="p-10 bg-white mt-10">
-                 <h2 className="text-3xl font-bold text-slate-800 mb-8 border-b pb-4">Key Metrics Analysis ({persona.toUpperCase()})</h2>
-                 <div className="grid grid-cols-3 gap-6">
+                 <h2 className="text-3xl font-semibold mb-1">Key metrics</h2>
+                 <p className="text-base text-[#50565c] mb-8">Classes from the {personaLabel} risk profile</p>
+                 <table className="w-full text-base border-collapse">
+                    <thead>
+                      <tr className="text-right text-[#50565c]">
+                        <th className="text-left font-medium py-2 pr-4">Metric</th>
+                        <th className="font-medium py-2 px-4">Min</th>
+                        <th className="font-medium py-2 px-4">Mean</th>
+                        <th className="font-medium py-2 px-4">Max</th>
+                        <th className="font-medium py-2 pl-6 text-left w-[34%]">Where the mean falls</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                     {Object.values(METRICS).map((metric) => {
                         const stat = stats[metric.key];
                         if (!stat) return null;
@@ -340,151 +359,111 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
                         const avgPercent = range === 0 ? 50 : ((stat.avg - stat.min) / range) * 100;
 
                         return (
-                            <div 
-                                key={metric.key}
-                                className="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col gap-4 relative overflow-hidden"
-                            >
-                                {/* Card Header */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{metric.label}</span>
+                            <tr key={metric.key} className="border-t border-black/10 text-right">
+                                <td className="text-left py-3.5 pr-4">
+                                    <span className="inline-block w-2.5 h-2.5 rounded-[2px] mr-3 align-middle" style={{ backgroundColor: qualityColor }} />
+                                    <span className="font-medium">{metric.label}</span>
+                                    <span className="ml-2 text-[#50565c]">{metric.unit}</span>
+                                </td>
+                                <td className="py-3.5 px-4 text-[#50565c]">{fmt(stat.min)}</td>
+                                <td className="py-3.5 px-4 font-semibold">{fmt(stat.avg)}</td>
+                                <td className="py-3.5 px-4 text-[#50565c]">{fmt(stat.max)}</td>
+                                <td className="py-3.5 pl-6">
+                                    <div className="h-2 w-full rounded-full relative bg-black/10">
+                                        <div
+                                            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-white"
+                                            style={{ left: `${avgPercent}%`, backgroundColor: qualityColor }}
+                                        />
                                     </div>
-                                    <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                                        {metric.unit}
-                                    </span>
-                                </div>
-
-                                {/* Big Value */}
-                                <div className="flex items-baseline gap-1">
-                                    <span 
-                                        className="text-4xl font-bold font-mono tracking-tight" 
-                                        style={{ color: qualityColor }}
-                                    >
-                                        {stat.avg.toFixed(1)}
-                                    </span>
-                                    <span className="text-xs font-bold text-slate-400 uppercase">AVG</span>
-                                </div>
-
-                                {/* Min/Max Stats */}
-                                <div className="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100 text-slate-600">
-                                    <div className="flex items-center gap-1.5">
-                                        <ArrowDownToLine size={14} className="text-slate-400" />
-                                        <span className="font-mono font-bold">{stat.min}</span>
-                                        <span className="text-[10px] opacity-60">MIN</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 justify-end">
-                                        <span className="text-[10px] opacity-60">MAX</span>
-                                        <span className="font-mono font-bold">{stat.max}</span>
-                                        <ArrowUpToLine size={14} className="text-slate-400" />
-                                    </div>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="mt-1 h-2 w-full bg-slate-100 rounded-full relative overflow-hidden">
-                                    <div className="absolute inset-0 opacity-20" style={{ backgroundColor: qualityColor }}></div>
-                                    <div 
-                                        className="absolute top-0 bottom-0 w-1.5 bg-white shadow-sm ring-1 ring-black/10 rounded-full"
-                                        style={{ left: `${avgPercent}%` }}
-                                    />
-                                </div>
-                            </div>
+                                </td>
+                            </tr>
                         );
                     })}
-                 </div>
+                    </tbody>
+                 </table>
             </div>
         </div>
       )}
 
-      <div className={`
-        w-full max-w-lg flex flex-col rounded-2xl shadow-2xl border
-        ${bgBase} ${borderBase} ${textBase} animate-in fade-in zoom-in-95 duration-200
-      `}>
-        
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-title"
+        className={`w-full max-w-lg flex flex-col rounded-3xl ${isDark ? 'av-glass-dark' : 'av-glass'} ${ink} animate-in fade-in zoom-in-95 duration-200`}
+      >
         {/* Header */}
-        <div className={`flex items-center justify-between p-6 border-b ${borderBase}`}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-red-500/20 rounded-full text-red-500">
-               <FileText size={24} />
-            </div>
-            <div>
-                <h2 className="text-xl font-bold">Generate Report</h2>
-                <p className={`text-sm ${subText}`}>
-                    Create a PDF summary tailored to: <span className="font-bold uppercase text-cyan-500">{persona}</span>
-                </p>
-            </div>
+        <div className="flex items-start justify-between gap-4 px-6 pt-5">
+          <div>
+            <h2 id="report-title" className="text-xl font-semibold">PDF report</h2>
+            <p className={`text-sm mt-0.5 ${subText}`}>
+              Risk profile: <span className={`font-semibold ${ink}`}>{personaLabel}</span>
+            </p>
           </div>
           <button 
             onClick={onClose}
-            className={`p-2 rounded-full hover:bg-slate-500/20 transition-colors`}
+            aria-label="Close report"
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors disabled:opacity-40 ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/[0.06]'}`}
             disabled={step !== 'idle' && step !== 'completed'}
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-8 flex flex-col items-center text-center space-y-6">
-            
+        <div className="px-6 py-5 flex flex-col gap-4">
             {step === 'idle' && (
                 <>
-                   <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-2">
-                      <FileText size={40} className="text-slate-400" />
-                   </div>
-                   <p className={`${subText}`}>
-                      This will analyze <strong>{data.length}</strong> data points against the <strong>{persona}</strong> health standards, generate a professional summary using Gemini AI, capture charts & maps, and export a complete PDF file.
+                   <p className="text-[15px] leading-relaxed">
+                      Analyses <strong className="font-semibold">{data.length}</strong> data points against the {personaLabel} thresholds and exports a PDF with:
                    </p>
+                   <ol className={`text-[15px] leading-relaxed list-decimal pl-5 space-y-1 ${subText}`}>
+                      <li>the current map view and a written summary (Gemini, when an API key is set);</li>
+                      <li>one trend chart per metric;</li>
+                      <li>a min / mean / max table.</li>
+                   </ol>
                 </>
             )}
 
-            {(step === 'analyzing' || step === 'generating' || step === 'capturing') && (
-                <>
-                   <div className="relative w-20 h-20 flex items-center justify-center mb-2">
-                      <Loader2 size={48} className="text-cyan-500 animate-spin" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                         <BrainCircuit size={20} className="text-cyan-500" />
-                      </div>
-                   </div>
+            {isWorking && (
+                <div className="flex items-center gap-4 py-2" role="status">
+                   <Loader2 size={28} className="animate-spin flex-shrink-0" />
                    <div>
-                      <h3 className="font-bold text-lg animate-pulse">
-                        {step === 'analyzing' && `Analyzing for ${persona}...`}
-                        {step === 'capturing' && "Capturing Visuals..."}
-                        {step === 'generating' && "Compiling PDF..."}
-                      </h3>
-                      <p className={`text-sm ${subText} mt-2`}>Please do not close this window.</p>
+                      <p className="font-semibold">
+                        {step === 'analyzing' && `Analysing for the ${personaLabel} profile…`}
+                        {step === 'capturing' && 'Capturing map and charts…'}
+                        {step === 'generating' && 'Building the PDF…'}
+                      </p>
+                      <p className={`text-sm ${subText}`}>Keep this window open until the download starts.</p>
                    </div>
-                </>
-            )}
-
-            {step === 'completed' && (
-                <>
-                   <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-2">
-                      <CheckCircle size={40} className="text-green-500" />
-                   </div>
-                   <h3 className="font-bold text-lg">Report Ready!</h3>
-                   <p className={`${subText}`}>
-                      Your PDF report has been downloaded successfully.
-                   </p>
-                </>
-            )}
-
-            {error && (
-                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-left w-full">
-                    <strong>Error:</strong> {error}
                 </div>
             )}
 
+            {step === 'completed' && (
+                <div className="flex items-center gap-4 py-2" role="status">
+                   <CheckCircle size={28} className="text-emerald-600 flex-shrink-0" />
+                   <div>
+                      <p className="font-semibold">Report downloaded</p>
+                      <p className={`text-sm ${subText}`}>Check your downloads folder for the PDF.</p>
+                   </div>
+                </div>
+            )}
+
+            {error && (
+                <div role="alert" className={`p-4 rounded-xl text-sm ${isDark ? 'bg-red-500/15 text-red-200' : 'bg-red-50 text-red-800'}`}>
+                    <strong className="font-semibold">The report could not be created.</strong> {error}
+                </div>
+            )}
         </div>
 
         {/* Footer */}
-        <div className={`p-6 border-t ${borderBase} flex justify-end`}>
+        <div className={`px-6 py-4 border-t ${hairline} flex justify-end`}>
             {step === 'idle' && (
-                <Tooltip content="Analyze with Gemini AI & Export" theme={theme}>
+                <Tooltip content="Analyse and export" theme={theme}>
                     <button 
                         onClick={handleGenerate}
-                        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold shadow-lg shadow-red-500/20 transition-colors"
+                        className={`h-11 px-6 rounded-xl text-sm font-semibold transition-colors ${primaryBtn}`}
                     >
-                        <BrainCircuit size={18} />
-                        Generate AI Report
+                        Create PDF
                     </button>
                 </Tooltip>
             )}
@@ -492,13 +471,12 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, data, theme,
             {step === 'completed' && (
                 <button 
                     onClick={onClose}
-                    className={`px-6 py-3 rounded-xl font-bold border transition-colors ${theme === 'dark' ? 'border-slate-600 hover:bg-slate-800' : 'border-slate-200 hover:bg-slate-100'}`}
+                    className={`h-11 px-6 rounded-xl text-sm font-medium border transition-colors ${isDark ? 'border-white/20 hover:bg-white/10' : 'border-black/20 hover:bg-black/[0.04]'}`}
                 >
                     Close
                 </button>
             )}
         </div>
-
       </div>
     </div>
   );

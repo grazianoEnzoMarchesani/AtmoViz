@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { X, BarChart2, ArrowDownToLine, ArrowUpToLine, TrendingUp, Activity, LayoutGrid, Calculator, Info } from 'lucide-react';
+import { X } from 'lucide-react';
 import { DataPoint, MetricKey } from '../types';
 import { METRICS, getQualityColor } from '../utils/dataUtils';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Label } from 'recharts';
@@ -102,79 +102,81 @@ const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, data, theme })
 
   if (!isOpen) return null;
 
-  const bgBase = theme === 'dark' ? 'bg-slate-900/95' : 'bg-white/95';
-  const textBase = theme === 'dark' ? 'text-white' : 'text-slate-900';
-  const borderBase = theme === 'dark' ? 'border-slate-700' : 'border-slate-200';
-  const cardBg = theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-50';
-  const subText = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
-  const inputBg = theme === 'dark' ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-900';
+  const isDark = theme === 'dark';
+  const ink = isDark ? 'text-slate-100' : 'text-[#1a1c1e]';
+  const subText = isDark ? 'text-slate-400' : 'text-[#50565c]';
+  const hairline = isDark ? 'border-white/10' : 'border-black/10';
+  const inputBg = isDark
+    ? 'bg-white/5 border-white/15 text-white focus:border-slate-100'
+    : 'bg-white/70 border-black/15 text-[#1a1c1e] focus:border-[#1a1c1e]';
+  const axis = isDark ? '#a7afb8' : '#50565c';
+  const grid = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(26,28,30,0.08)';
+  const dotFill = isDark ? '#e6e8ea' : '#1a1c1e';
+  const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2).replace(/\.?0+$/, ''));
+
+  const tabClass = (active: boolean) => `
+    h-11 px-1 text-sm border-b-2 -mb-px transition-colors
+    ${active
+      ? `font-semibold ${isDark ? 'border-slate-100' : 'border-[#1a1c1e]'}`
+      : `border-transparent ${subText} ${isDark ? 'hover:text-white' : 'hover:text-[#1a1c1e]'}`}
+  `;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className={`
-        w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border
-        ${bgBase} ${borderBase} ${textBase} animate-in fade-in zoom-in-95 duration-200
-      `}>
-        
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stats-title"
+        className={`w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl ${isDark ? 'av-glass-dark' : 'av-glass'} ${ink} animate-in fade-in zoom-in-95 duration-200`}
+      >
         {/* Header */}
-        <div className={`flex items-center justify-between p-6 pb-0`}>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-500/20 rounded-full text-purple-500">
-               <BarChart2 size={24} />
-            </div>
-            <div>
-                <h2 className="text-2xl font-bold">Data Analysis</h2>
-                <p className={`text-sm ${subText}`}>
-                    {data.length} data points selected
-                </p>
-            </div>
+        <div className="flex items-start justify-between gap-4 px-6 pt-5">
+          <div>
+            <h2 id="stats-title" className="text-xl font-semibold">Data analysis</h2>
+            <p className={`text-sm mt-0.5 ${subText}`}>{data.length} data points in the current selection</p>
           </div>
-          <button 
+          <button
             onClick={onClose}
-            className={`p-2 rounded-full hover:bg-slate-500/20 transition-colors`}
+            aria-label="Close analysis"
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/[0.06]'}`}
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className={`flex gap-6 px-6 mt-6 border-b ${borderBase}`}>
-            <Tooltip content="View General Statistics" theme={theme}>
-                <button 
-                    onClick={() => setActiveTab('overview')}
-                    className={`pb-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2
-                        ${activeTab === 'overview' 
-                            ? 'border-purple-500 text-purple-500' 
-                            : 'border-transparent opacity-50 hover:opacity-100'}
-                    `}
-                >
-                    <LayoutGrid size={16} />
-                    Summary Stats
+        <div role="tablist" className={`flex gap-6 px-6 mt-3 border-b ${hairline}`}>
+            <Tooltip content="View general statistics" theme={theme}>
+                <button role="tab" aria-selected={activeTab === 'overview'} onClick={() => setActiveTab('overview')} className={tabClass(activeTab === 'overview')}>
+                    Summary
                 </button>
             </Tooltip>
-            
-            <Tooltip content="Compare Two Metrics" theme={theme}>
-                <button 
-                    onClick={() => setActiveTab('correlations')}
-                    className={`pb-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2
-                        ${activeTab === 'correlations' 
-                            ? 'border-cyan-500 text-cyan-500' 
-                            : 'border-transparent opacity-50 hover:opacity-100'}
-                    `}
-                >
-                    <TrendingUp size={16} />
-                    Correlation Plot
+            <Tooltip content="Compare two metrics" theme={theme}>
+                <button role="tab" aria-selected={activeTab === 'correlations'} onClick={() => setActiveTab('correlations')} className={tabClass(activeTab === 'correlations')}>
+                    Correlation
                 </button>
             </Tooltip>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-            
+        <div className="flex-1 overflow-y-auto px-6 py-5 custom-scrollbar">
+
             {/* VIEW: OVERVIEW */}
             {activeTab === 'overview' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {Object.values(METRICS).map((metric) => {
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse min-w-[560px]">
+                    <thead>
+                      <tr className={`text-right ${subText}`}>
+                        <th className="text-left font-medium py-2 pr-4">Metric</th>
+                        <th className="font-medium py-2 px-3">Min</th>
+                        <th className="font-medium py-2 px-3">Mean</th>
+                        <th className="font-medium py-2 px-3">Max</th>
+                        <th className="font-medium py-2 pl-4 text-left w-[32%]">Where the mean falls</th>
+                        <th className="font-medium py-2 pl-3">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.values(METRICS).map((metric) => {
                         const stat = statistics[metric.key];
                         if (!stat) return null;
 
@@ -183,183 +185,133 @@ const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, data, theme })
                         const avgPercent = range === 0 ? 50 : ((stat.avg - stat.min) / range) * 100;
 
                         return (
-                            <div 
-                                key={metric.key}
-                                className={`p-4 rounded-xl border ${borderBase} ${cardBg} flex flex-col gap-3 relative overflow-hidden group`}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-xs font-bold uppercase tracking-wider ${subText}`}>{metric.label}</span>
-                                    </div>
-                                    <span className="text-[10px] font-mono opacity-50 bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded">
-                                        {metric.unit}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-baseline gap-1">
-                                    <span 
-                                        className="text-3xl font-bold font-mono" 
-                                        style={{ color: qualityColor }}
-                                    >
-                                        {stat.avg.toFixed(1)}
-                                    </span>
-                                    <span className={`text-xs font-bold ${subText}`}>AVG</span>
-                                </div>
-
-                                <div className={`grid grid-cols-2 gap-2 text-xs mt-1 pt-3 border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                                    <div className="flex items-center gap-1.5">
-                                        <ArrowDownToLine size={12} className="opacity-50" />
-                                        <span className={subText}>Min:</span>
-                                        <span className="font-mono font-bold">{stat.min}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 justify-end">
-                                        <span className={subText}>Max:</span>
-                                        <span className="font-mono font-bold">{stat.max}</span>
-                                        <ArrowUpToLine size={12} className="opacity-50" />
-                                    </div>
-                                </div>
-
-                                <div className="mt-2 h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full relative overflow-hidden">
-                                    <div className="absolute inset-0 opacity-30" style={{ backgroundColor: qualityColor }}></div>
-                                    <div 
-                                        className="absolute top-0 bottom-0 w-1 bg-white dark:bg-black shadow-sm ring-1 ring-black/10 dark:ring-white/20"
-                                        style={{ left: `${avgPercent}%` }}
-                                    />
-                                </div>
-                            </div>
+                          <tr key={metric.key} className={`border-t ${hairline} text-right`}>
+                            <td className="text-left py-3 pr-4 whitespace-nowrap">
+                              <span className="inline-block w-2 h-2 rounded-[2px] mr-2.5 align-middle" style={{ backgroundColor: qualityColor }} />
+                              <span className="font-medium">{metric.label}</span>
+                              <span className={`ml-1.5 ${subText}`}>{metric.unit}</span>
+                            </td>
+                            <td className={`py-3 px-3 ${subText}`}>{fmt(stat.min)}</td>
+                            <td className="py-3 px-3 font-semibold">{fmt(stat.avg)}</td>
+                            <td className={`py-3 px-3 ${subText}`}>{fmt(stat.max)}</td>
+                            <td className="py-3 pl-4">
+                              <div className={`h-1.5 w-full rounded-full relative ${isDark ? 'bg-white/10' : 'bg-black/10'}`} aria-hidden="true">
+                                <div
+                                  className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 ${isDark ? 'border-[#181b1f]' : 'border-white'}`}
+                                  style={{ left: `${avgPercent}%`, backgroundColor: qualityColor }}
+                                />
+                              </div>
+                            </td>
+                            <td className={`py-3 pl-3 ${subText}`}>{stat.count}</td>
+                          </tr>
                         );
-                    })}
+                      })}
+                    </tbody>
+                  </table>
+                  <p className={`mt-3 text-sm ${subText}`}>The dot colour is the standard-profile class of the mean value.</p>
                 </div>
             )}
 
             {/* VIEW: CORRELATIONS */}
             {activeTab === 'correlations' && (
-                <div className="flex flex-col h-full gap-6">
+                <div className="flex flex-col h-full gap-5">
                     {/* Selectors */}
-                    <div className={`p-4 rounded-xl border ${borderBase} ${cardBg} flex flex-col lg:flex-row gap-6 items-start lg:items-center flex-shrink-0`}>
-                        
-                        {/* Left: Selectors */}
-                        <div className="flex flex-col md:flex-row gap-4 items-center flex-1 w-full">
-                            <div className="flex items-center gap-3 w-full">
-                                <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
-                                    <Activity size={18} />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="text-xs font-bold uppercase opacity-60 mb-1 block">X Axis Metric</label>
-                                    <select 
-                                        value={xMetric}
-                                        onChange={(e) => setXMetric(e.target.value as MetricKey)}
-                                        className={`w-full p-2 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500 ${inputBg}`}
-                                    >
-                                        {Object.values(METRICS).map(m => (
-                                            <option key={m.key} value={m.key}>{m.label} ({m.unit})</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="hidden md:block text-slate-400 font-bold px-2">VS</div>
-
-                            <div className="flex items-center gap-3 w-full">
-                                <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
-                                    <Activity size={18} />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="text-xs font-bold uppercase opacity-60 mb-1 block">Y Axis Metric</label>
-                                    <select 
-                                        value={yMetric}
-                                        onChange={(e) => setYMetric(e.target.value as MetricKey)}
-                                        className={`w-full p-2 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500 ${inputBg}`}
-                                    >
-                                        {Object.values(METRICS).map(m => (
-                                            <option key={m.key} value={m.key}>{m.label} ({m.unit})</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="flex flex-col md:flex-row gap-3 md:items-end">
+                        <label className="flex-1">
+                            <span className={`text-sm block mb-1 ${subText}`}>X axis</span>
+                            <select
+                                value={xMetric}
+                                onChange={(e) => setXMetric(e.target.value as MetricKey)}
+                                className={`w-full h-11 px-3 rounded-xl border outline-none transition-colors ${inputBg}`}
+                            >
+                                {Object.values(METRICS).map(m => (
+                                    <option key={m.key} value={m.key}>{m.label} ({m.unit})</option>
+                                ))}
+                            </select>
+                        </label>
+                        <span className={`hidden md:block pb-3 text-sm ${subText}`}>vs</span>
+                        <label className="flex-1">
+                            <span className={`text-sm block mb-1 ${subText}`}>Y axis</span>
+                            <select
+                                value={yMetric}
+                                onChange={(e) => setYMetric(e.target.value as MetricKey)}
+                                className={`w-full h-11 px-3 rounded-xl border outline-none transition-colors ${inputBg}`}
+                            >
+                                {Object.values(METRICS).map(m => (
+                                    <option key={m.key} value={m.key}>{m.label} ({m.unit})</option>
+                                ))}
+                            </select>
+                        </label>
                     </div>
 
-                    {/* Statistics Panel */}
+                    {/* Statistics */}
                     {correlationStats && (
-                        <div className={`grid grid-cols-1 md:grid-cols-3 gap-4`}>
-                            <div className={`p-3 rounded-xl border ${borderBase} ${cardBg} flex flex-col items-center justify-center`}>
-                                <div className="flex items-center gap-2 text-xs font-bold uppercase opacity-60 mb-1">
-                                    <Calculator size={12} /> Pearson (r)
-                                </div>
-                                <div className={`text-2xl font-mono font-bold ${correlationStats.r > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {correlationStats.r.toFixed(3)}
-                                </div>
+                        <dl className={`grid grid-cols-3 border-y ${hairline}`}>
+                            <div className="py-3 pr-4">
+                                <dt className={`text-sm ${subText}`}>Pearson r</dt>
+                                <dd className="text-2xl font-semibold">{correlationStats.r.toFixed(3)}</dd>
                             </div>
-                             <div className={`p-3 rounded-xl border ${borderBase} ${cardBg} flex flex-col items-center justify-center`}>
-                                <div className="flex items-center gap-2 text-xs font-bold uppercase opacity-60 mb-1">
-                                    <TrendingUp size={12} /> R Squared (R²)
-                                </div>
-                                <div className="text-2xl font-mono font-bold text-blue-500">
-                                    {correlationStats.r2.toFixed(3)}
-                                </div>
+                            <div className={`py-3 px-4 border-l ${hairline}`}>
+                                <dt className={`text-sm ${subText}`}>R²</dt>
+                                <dd className="text-2xl font-semibold">{correlationStats.r2.toFixed(3)}</dd>
                             </div>
-                             <div className={`p-3 rounded-xl border ${borderBase} ${cardBg} flex flex-col items-center justify-center`}>
-                                <div className="flex items-center gap-2 text-xs font-bold uppercase opacity-60 mb-1">
-                                    <Info size={12} /> Interpretation
-                                </div>
-                                <div className="text-lg font-bold text-center">
-                                    {correlationStats.desc}
-                                </div>
+                            <div className={`py-3 pl-4 border-l ${hairline}`}>
+                                <dt className={`text-sm ${subText}`}>Interpretation</dt>
+                                <dd className="text-lg font-semibold leading-tight mt-1">{correlationStats.desc}</dd>
                             </div>
-                        </div>
+                        </dl>
                     )}
 
                     {/* Scatter Chart Container */}
-                    <div className="w-full h-[400px] md:h-[450px] bg-white/50 dark:bg-white/5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-2 relative flex-shrink-0">
+                    <div className={`w-full h-[400px] md:h-[450px] rounded-2xl p-2 relative flex-shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-white/60'}`}>
                          {scatterData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <ScatterChart 
+                                <ScatterChart
                                     margin={{ top: 20, right: 30, bottom: 40, left: 40 }}
                                 >
-                                    <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#475569' : '#e2e8f0'} opacity={theme === 'dark' ? 0.4 : 1} />
-                                    <XAxis 
-                                        type="number" 
-                                        dataKey="x" 
-                                        name={METRICS[xMetric].label} 
+                                    <CartesianGrid stroke={grid} />
+                                    <XAxis
+                                        type="number"
+                                        dataKey="x"
+                                        name={METRICS[xMetric].label}
                                         unit={METRICS[xMetric].unit}
-                                        stroke={theme === 'dark' ? '#cbd5e1' : '#64748b'}
-                                        tick={{ fontSize: 12, fill: theme === 'dark' ? '#cbd5e1' : '#64748b' }}
-                                        tickLine={{ stroke: theme === 'dark' ? '#cbd5e1' : '#64748b' }}
+                                        stroke={axis}
+                                        tick={{ fontSize: 12, fill: axis }}
+                                        tickLine={{ stroke: axis }}
                                         domain={['auto', 'auto']}
                                     >
-                                        <Label 
-                                            value={`${METRICS[xMetric].label} (${METRICS[xMetric].unit})`} 
-                                            offset={-20} 
-                                            position="insideBottom" 
-                                            style={{ fill: theme === 'dark' ? '#cbd5e1' : '#64748b', fontSize: '12px', fontWeight: 'bold' }} 
+                                        <Label
+                                            value={`${METRICS[xMetric].label} (${METRICS[xMetric].unit})`}
+                                            offset={-20}
+                                            position="insideBottom"
+                                            style={{ fill: axis, fontSize: '13px', fontWeight: 500 }}
                                         />
                                     </XAxis>
-                                    <YAxis 
-                                        type="number" 
-                                        dataKey="y" 
-                                        name={METRICS[yMetric].label} 
+                                    <YAxis
+                                        type="number"
+                                        dataKey="y"
+                                        name={METRICS[yMetric].label}
                                         unit={METRICS[yMetric].unit}
-                                        stroke={theme === 'dark' ? '#cbd5e1' : '#64748b'}
-                                        tick={{ fontSize: 12, fill: theme === 'dark' ? '#cbd5e1' : '#64748b' }}
-                                        tickLine={{ stroke: theme === 'dark' ? '#cbd5e1' : '#64748b' }}
+                                        stroke={axis}
+                                        tick={{ fontSize: 12, fill: axis }}
+                                        tickLine={{ stroke: axis }}
                                         domain={['auto', 'auto']}
                                     >
-                                        <Label 
-                                            value={`${METRICS[yMetric].label} (${METRICS[yMetric].unit})`} 
-                                            angle={-90} 
-                                            position="insideLeft" 
-                                            style={{ fill: theme === 'dark' ? '#cbd5e1' : '#64748b', fontSize: '12px', fontWeight: 'bold' }} 
+                                        <Label
+                                            value={`${METRICS[yMetric].label} (${METRICS[yMetric].unit})`}
+                                            angle={-90}
+                                            position="insideLeft"
+                                            style={{ fill: axis, fontSize: '13px', fontWeight: 500 }}
                                         />
                                     </YAxis>
-                                    <RechartsTooltip 
-                                        cursor={{ strokeDasharray: '3 3', stroke: theme === 'dark' ? '#94a3b8' : '#ccc' }} 
+                                    <RechartsTooltip
+                                        cursor={{ strokeDasharray: '3 3', stroke: axis }}
                                         content={({ active, payload }) => {
                                             if (active && payload && payload.length) {
                                                 const d = payload[0].payload;
                                                 return (
-                                                    <div className={`p-3 rounded shadow-lg border text-xs ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                                                        <div className="font-bold mb-1 text-cyan-500">Point ID: {d.id}</div>
+                                                    <div className={`px-3 py-2 rounded-xl text-xs ${isDark ? 'bg-slate-100 text-[#1a1c1e]' : 'bg-[#1a1c1e] text-white'}`}>
+                                                        <div className="font-semibold mb-0.5">Point {d.id}</div>
                                                         <div>{METRICS[xMetric].label}: {Number(d.x).toFixed(2)} {METRICS[xMetric].unit}</div>
                                                         <div>{METRICS[yMetric].label}: {Number(d.y).toFixed(2)} {METRICS[yMetric].unit}</div>
                                                     </div>
@@ -368,18 +320,18 @@ const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, data, theme })
                                             return null;
                                         }}
                                     />
-                                    <Scatter 
-                                        name="Correlation" 
-                                        data={scatterData} 
-                                        fill={theme === 'dark' ? '#22d3ee' : '#0284c7'} 
-                                        fillOpacity={theme === 'dark' ? 0.8 : 0.6}
+                                    <Scatter
+                                        name="Correlation"
+                                        data={scatterData}
+                                        fill={dotFill}
+                                        fillOpacity={0.45}
                                         isAnimationActive={false}
                                     />
                                 </ScatterChart>
                             </ResponsiveContainer>
                          ) : (
-                             <div className={`absolute inset-0 flex items-center justify-center opacity-50 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                                 No overlapping data found for these metrics.
+                             <div className={`absolute inset-0 flex items-center justify-center text-sm ${subText}`}>
+                                 These two metrics have no readings at the same points.
                              </div>
                          )}
                     </div>

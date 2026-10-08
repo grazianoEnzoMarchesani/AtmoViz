@@ -289,9 +289,7 @@ const App: React.FC = () => {
   }, [allData]);
 
   // Styles for the Zen Button to match ControlBar Menu Button
-  const zenButtonClass = theme === 'dark' 
-    ? 'bg-slate-900/90 border-slate-700 text-white shadow-black/50' 
-    : 'bg-white/90 border-slate-200 text-slate-700 shadow-slate-200/50';
+  const zenButtonClass = theme === 'dark' ? 'av-glass-dark text-white' : 'av-glass text-[#1a1c1e]';
 
   // --- TOUR CONFIGURATION ---
   const tourSteps: TourStep[] = [
@@ -304,7 +302,7 @@ const App: React.FC = () => {
     {
         target: '.tour-target-dashboard', // Class based target
         title: 'Live Metrics',
-        content: 'View real-time sensor readings for the current timestamp. Click any card to visualize that specific metric on the map.',
+        content: 'Sensor readings at the current moment. The panel takes the colour of the air-quality class; click a reading to colour the map by it.',
         position: 'right'
     },
     {
@@ -376,9 +374,9 @@ const App: React.FC = () => {
                 <Tooltip content={isZenMode ? "Show Controls" : "Fullscreen Map"} theme={theme} position="left">
                     <button 
                         onClick={() => setIsZenMode(!isZenMode)}
-                        className={`p-3 rounded-full shadow-lg border backdrop-blur-md transition-colors ${zenButtonClass}`}
+                        className={`w-11 h-11 flex items-center justify-center rounded-2xl transition-colors ${zenButtonClass}`}
                     >
-                        {isZenMode ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
+                        {isZenMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
                     </button>
                 </Tooltip>
             </div>
@@ -398,8 +396,8 @@ const App: React.FC = () => {
           */}
           <div className="flex md:hidden items-center gap-2 pointer-events-auto w-full pr-32"> 
              {/* Logo */}
-             <div className={`text-sm font-bold flex items-center gap-2 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex-shrink-0 ${theme === 'dark' ? 'bg-slate-900/50 text-white' : 'bg-white/50 text-slate-900'}`}>
-               <Activity size={16} className="text-cyan-500" />
+             <div className={`text-sm font-bold flex items-center gap-2 h-11 px-3 rounded-2xl flex-shrink-0 ${theme === 'dark' ? 'av-glass-dark text-white' : 'av-glass text-[#1a1c1e]'}`}>
+               <Activity size={16} />
                <span className="hidden sm:inline">Atmo Viz</span>
              </div>
              
@@ -503,12 +501,12 @@ const App: React.FC = () => {
         {/* Empty State if Filter removes everything */}
         {allData.length > 0 && data.length === 0 && (
             <div className="w-full h-full flex flex-col items-center justify-center pointer-events-none absolute inset-0">
-                <div className="p-6 rounded-xl backdrop-blur-md bg-black/50 text-white text-center pointer-events-auto">
+                <div className="p-6 rounded-2xl av-glass-dark text-white text-center pointer-events-auto">
                     <h3 className="text-xl font-bold mb-2">No Data Found</h3>
                     <p className="text-sm opacity-80 mb-4">Your filters are too strict.</p>
                     <button 
                         onClick={() => handleApplyFilters({...filters, startTime: minMaxTimestamps.min, endTime: minMaxTimestamps.max, onlyCompleteData: false})}
-                        className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-lg transition-colors"
+                        className="h-11 px-4 bg-white text-[#1a1c1e] font-semibold rounded-xl transition-colors hover:bg-slate-100"
                     >
                         Reset Filters
                     </button>
@@ -536,16 +534,16 @@ const App: React.FC = () => {
 
       {/* Status Message Toast */}
       {statusMessage && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] flex items-center gap-3 bg-emerald-600 text-white font-bold px-6 py-3.5 rounded-2xl shadow-2xl border border-emerald-400/30 animate-in fade-in slide-in-from-top-4 duration-300">
-          <CheckCircle2 size={22} className="text-emerald-200" />
+        <div role="status" className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#1a1c1e] text-white font-medium px-5 py-3 rounded-2xl shadow-lg animate-in fade-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 size={20} className="text-emerald-300" />
           <span className="text-sm">{statusMessage}</span>
         </div>
       )}
 
       {/* Append/Replace Decision Modal */}
       {pendingData && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto p-4">
-              <div className={`max-w-md w-full rounded-2xl shadow-2xl border p-6 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 pointer-events-auto p-4">
+              <div className={`max-w-md w-full rounded-3xl p-6 ${theme === 'dark' ? 'av-glass-dark text-white' : 'av-glass text-[#1a1c1e]'}`}>
                   <div className="flex flex-col items-center text-center gap-4">
                       <div className="p-4 rounded-full bg-yellow-500/20 text-yellow-500">
                           <AlertTriangle size={32} />
@@ -558,7 +556,7 @@ const App: React.FC = () => {
                       <div className="flex flex-col w-full gap-3 mt-4">
                           <button 
                             onClick={() => handleMergeDecision('append')}
-                            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-colors"
+                            className={`flex items-center justify-center gap-2 w-full h-12 rounded-xl font-semibold transition-colors ${theme === 'dark' ? 'bg-slate-100 text-[#1a1c1e] hover:bg-white' : 'bg-[#1a1c1e] text-white hover:bg-black'}`}
                           >
                               <CopyPlus size={18} />
                               Append to Existing ({allData.length} pts)

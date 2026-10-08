@@ -1,8 +1,6 @@
 import React from 'react';
-import { Droplets, Thermometer, Wind, Activity, Gauge, CloudFog } from 'lucide-react';
 import { DataPoint, MetricKey, Persona } from '../types';
-import { METRICS, getQualityColor } from '../utils/dataUtils';
-import Tooltip from './Tooltip';
+import { PERSONA_STANDARDS, getQualityColor } from '../utils/dataUtils';
 
 interface DashboardProps {
   currentData: DataPoint | null;
@@ -13,176 +11,99 @@ interface DashboardProps {
   className?: string; // Added for Tour targeting
 }
 
-const StatCard: React.FC<{
-  label: string;
-  value: number | null;
-  unit: string;
-  icon: React.ReactNode;
-  isActive: boolean;
-  onClick: () => void;
-  metricKey: MetricKey;
-  theme: 'light' | 'dark';
-  persona: Persona;
-}> = ({ label, value, unit, icon, isActive, onClick, metricKey, theme, persona }) => {
-  
-  const displayValue = value !== null 
-    ? (typeof value === 'number' ? Math.round(value * 1000) / 1000 : value)
-    : "N/A";
-  const color = value !== null ? getQualityColor(value, metricKey, persona) : '#888';
-  
-  // GLASSMORPHISM RECIPE
-  // Base: Layout & Sizing
-  // MOBILE OPTIMIZATION: Reduced min-width, padding, and height
-  const baseStyles = `
-    flex items-center justify-between p-2 md:p-3 rounded-xl md:rounded-2xl transition-all duration-300 
-    cursor-pointer pointer-events-auto select-none
-    min-w-[130px] md:min-w-[220px] md:w-full flex-shrink-0
-    group relative overflow-hidden
-  `;
+const ROWS: { key: MetricKey; label: string; unit: string }[] = [
+  { key: 'temp', label: 'Temperature', unit: '°C' },
+  { key: 'dewpoint', label: 'Dew Point', unit: '°C' },
+  { key: 'humidity', label: 'Humidity', unit: '%' },
+  { key: 'voc', label: 'VOC', unit: 'ppm' },
+  { key: 'pm25', label: 'PM 2.5', unit: 'µg/m³' },
+  { key: 'pm10', label: 'PM 10', unit: 'µg/m³' },
+  { key: 'aqs', label: 'AQS', unit: '' },
+];
 
-  // Theme: Colors & Glass Effects
-  const glassStyles = isActive 
-    ? (theme === 'dark' 
-        ? 'bg-slate-800/80 ring-1 md:ring-2 ring-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.2)]' 
-        : 'bg-white/80 ring-1 md:ring-2 ring-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]')
-    : (theme === 'dark' 
-        ? 'bg-gradient-to-br from-slate-900/60 to-slate-800/60 border border-white/5 hover:bg-slate-800/70' 
-        : 'bg-gradient-to-br from-white/60 to-white/30 border border-white/40 hover:bg-white/70');
+const formatValue = (value: number | null) =>
+  value !== null ? (typeof value === 'number' ? Math.round(value * 1000) / 1000 : value) : '—';
 
-  const commonGlass = `backdrop-blur-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5`;
-
-  return (
-    <Tooltip content={`Click to visualize ${label} on Map`} position="right" theme={theme}>
-      <div
-        onClick={onClick}
-        className={`${baseStyles} ${glassStyles} ${commonGlass}`}
-      >
-        {/* Shine Effect on Hover */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-        <div className="flex items-center gap-2 md:gap-3 relative z-10 w-full">
-          <div className={`p-1.5 md:p-2.5 rounded-lg md:rounded-xl shadow-sm ${theme === 'dark' ? 'bg-slate-950/50 text-slate-300' : 'bg-white/50 text-slate-600'}`}>
-            {/* Clone icon with smaller size for mobile */}
-            {React.cloneElement(icon as React.ReactElement, { size: 16, className: "md:w-[18px] md:h-[18px]" })}
-          </div>
-          <div className="text-left flex-1 min-w-0">
-            <div className={`text-[9px] md:text-[10px] uppercase font-bold tracking-wider mb-0 md:mb-0.5 truncate ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-              {label}
-            </div>
-            <div className={`text-sm md:text-xl font-bold font-mono leading-none tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'} drop-shadow-sm`}>
-              {displayValue} <span className="text-[9px] md:text-[10px] font-normal text-slate-500 ml-0.5">{unit}</span>
-            </div>
-          </div>
-        </div>
-        
-        {value !== null && (
-          <div 
-             className="w-1 md:w-1.5 h-6 md:h-8 rounded-full ml-1.5 md:ml-2 transition-all duration-500 relative z-10 flex-shrink-0" 
-             style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}88` }} 
-          />
-        )}
-      </div>
-    </Tooltip>
-  );
+// Label of the range getQualityColor picked: same source of truth, no new thresholds logic.
+const qualityLabel = (value: number | null, key: MetricKey, persona: Persona): string | null => {
+  if (value === null) return null;
+  const color = getQualityColor(value, key, persona);
+  const ranges = PERSONA_STANDARDS[persona]?.[key] || PERSONA_STANDARDS.standard[key];
+  return ranges?.find(r => r.color === color)?.label ?? null;
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ currentData, selectedMetric, onSelectMetric, theme, persona, className }) => {
+  const isDark = theme === 'dark';
+  const valueOf = (key: MetricKey) => (currentData ? ((currentData as any)[key] ?? null) : null) as number | null;
+
+  const selected = ROWS.find(r => r.key === selectedMetric) || ROWS[4];
+  const selectedValue = valueOf(selected.key);
+  const tint = selectedValue !== null ? getQualityColor(selectedValue, selected.key, persona) : undefined;
+  const label = qualityLabel(selectedValue, selected.key, persona);
+
+  const ink = isDark ? 'text-slate-100' : 'text-[#1a1c1e]';
+  const muted = isDark ? 'text-slate-400' : 'text-[#50565c]';
+  const tintStyle = (tint ? { ['--tint' as any]: tint } : {}) as React.CSSProperties;
+  // Class name in a darker (light theme) or lighter (dark theme) shade of the tint, for contrast.
+  const labelStyle = tint
+    ? { color: `color-mix(in srgb, ${tint} 62%, ${isDark ? '#ffffff' : '#1a1c1e'})` }
+    : undefined;
+
   return (
     <div className={`flex flex-col pointer-events-none z-20 w-full md:w-auto ${className || ''}`}>
-      
-      {/* Scrollable Container for Metrics */}
-      <div className="
-        flex flex-row gap-2 md:gap-3 overflow-x-auto w-full p-1 no-scrollbar
-        md:flex-col md:w-64 md:overflow-visible md:h-auto
-        pointer-events-auto
-        pb-2 md:pb-0
-        mask-linear-fade
-      ">
-        
-        <StatCard
-          label="Temperature"
-          value={currentData?.temp ?? null}
-          unit="°C"
-          icon={<Thermometer />}
-          isActive={selectedMetric === 'temp'}
-          onClick={() => onSelectMetric('temp')}
-          metricKey="temp"
-          theme={theme}
-          persona={persona}
-        />
+      <section
+        aria-label="Current readings"
+        className={`pointer-events-auto rounded-2xl ${isDark ? 'av-tint-dark' : 'av-tint'} ${ink} md:w-72`}
+        style={tintStyle}
+      >
+        {/* Selected reading: the focal point (desktop only, mobile keeps the compact strip) */}
+        <div className="hidden md:block px-5 pt-4 pb-3">
+          <div className={`text-[13px] ${muted}`}>{selected.label}</div>
+          <div className="flex items-baseline gap-1.5 mt-0.5">
+            <span className="text-[40px] leading-none font-semibold tracking-tight">{formatValue(selectedValue)}</span>
+            <span className={`text-sm ${muted}`}>{selected.unit}</span>
+          </div>
+          <div className="mt-1.5 text-[15px] font-semibold" style={labelStyle}>
+            {label ?? (selectedValue === null ? 'No data at this point' : '')}
+          </div>
+        </div>
 
-        <StatCard
-          label="Dew Point"
-          value={currentData?.dewpoint ?? null}
-          unit="°C"
-          icon={<Thermometer />}
-          isActive={selectedMetric === 'dewpoint'}
-          onClick={() => onSelectMetric('dewpoint')}
-          metricKey="dewpoint"
-          theme={theme}
-          persona={persona}
-        />
-        
-        <StatCard
-          label="Humidity"
-          value={currentData?.humidity ?? null}
-          unit="%"
-          icon={<Droplets />}
-          isActive={selectedMetric === 'humidity'}
-          onClick={() => onSelectMetric('humidity')}
-          metricKey="humidity"
-          theme={theme}
-          persona={persona}
-        />
-
-        <StatCard
-          label="VOC"
-          value={currentData?.voc ?? null}
-          unit="ppm"
-          icon={<Wind />}
-          isActive={selectedMetric === 'voc'}
-          onClick={() => onSelectMetric('voc')}
-          metricKey="voc"
-          theme={theme}
-          persona={persona}
-        />
-
-        <StatCard
-          label="PM 2.5"
-          value={currentData?.pm25 ?? null}
-          unit="µg/m³"
-          icon={<CloudFog />}
-          isActive={selectedMetric === 'pm25'}
-          onClick={() => onSelectMetric('pm25')}
-          metricKey="pm25"
-          theme={theme}
-          persona={persona}
-        />
-        
-        <StatCard
-          label="PM 10"
-          value={currentData?.pm10 ?? null}
-          unit="µg/m³"
-          icon={<CloudFog />}
-          isActive={selectedMetric === 'pm10'}
-          onClick={() => onSelectMetric('pm10')}
-          metricKey="pm10"
-          theme={theme}
-          persona={persona}
-        />
-
-        <StatCard
-          label="AQS"
-          value={currentData?.aqs ?? null}
-          unit=""
-          icon={<Gauge />}
-          isActive={selectedMetric === 'aqs'}
-          onClick={() => onSelectMetric('aqs')}
-          metricKey="aqs"
-          theme={theme}
-          persona={persona}
-        />
-      </div>
+        {/* All readings: one list, the selected one is the row the map is coloured by */}
+        <ul
+          className={`
+            flex flex-row gap-1 overflow-x-auto no-scrollbar p-1.5
+            md:flex-col md:gap-0.5 md:overflow-visible md:px-2 md:pb-2 md:pt-1
+            md:border-t ${isDark ? 'md:border-white/10' : 'md:border-black/10'}
+          `}
+        >
+          {ROWS.map(row => {
+            const value = valueOf(row.key);
+            const isActive = row.key === selectedMetric;
+            const dot = value !== null ? getQualityColor(value, row.key, persona) : 'transparent';
+            return (
+              <li key={row.key} className="flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onSelectMetric(row.key)}
+                  aria-pressed={isActive}
+                  className={`
+                    w-full min-h-[40px] flex items-center gap-2.5 px-3 rounded-xl text-left transition-colors
+                    focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1
+                    ${isActive
+                      ? (isDark ? 'bg-white/15 font-semibold' : 'bg-black/[0.08] font-semibold')
+                      : (isDark ? 'hover:bg-white/5' : 'hover:bg-black/[0.04]')}
+                  `}
+                >
+                  <span className="w-2 h-2 rounded-[2px] flex-shrink-0" style={{ backgroundColor: dot }} />
+                  <span className="text-[14px] md:flex-1 whitespace-nowrap">{row.label}</span>
+                  <span className="text-[15px] font-semibold whitespace-nowrap">{formatValue(value)}</span>
+                  <span className={`hidden md:inline w-11 text-xs font-normal ${muted}`}>{row.unit}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     </div>
   );
 };
