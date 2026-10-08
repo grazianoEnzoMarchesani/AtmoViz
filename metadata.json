@@ -1,0 +1,6 @@
+{
+  "name": "Remix AtmoViz2.99 - con FLiR",
+  "description": "A high-performance environmental data visualization tool featuring interactive maps, time-travel playback, and dynamic charts for geolocated CSV data.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
