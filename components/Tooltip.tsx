@@ -49,15 +49,15 @@ const Tooltip: React.FC<TooltipProps> = ({
   }
 
   // Colors
-  const bgClass = isDark ? 'bg-slate-100 text-slate-900' : 'bg-slate-800 text-white';
-  const borderClass = isDark ? 'text-slate-100' : 'text-slate-800'; // For the arrow (using text color for border trick)
+  const bgClass = isDark ? 'bg-slate-100 text-[#1a1c1e]' : 'bg-[#1a1c1e] text-white';
+  const borderClass = isDark ? 'text-slate-100' : 'text-[#1a1c1e]'; // For the arrow (using text color for border trick)
 
   return (
     <div className={`relative group flex items-center justify-center ${className}`}>
       {children}
       <div 
         className={`
-          absolute ${posClasses} px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide shadow-xl z-[9999] pointer-events-none
+          absolute ${posClasses} px-2.5 py-1.5 rounded-lg text-xs font-medium shadow-lg z-[9999] pointer-events-none
           whitespace-nowrap transition-all duration-200 ease-out transform scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100
           ${bgClass}
         `}

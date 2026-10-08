@@ -210,7 +210,7 @@ const GroupClusterMarker: React.FC<{
         tooltip={!isSpiderfied ? (
           <div className="bg-slate-900/90 text-white px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-lg border border-white/10 font-sans">
             <Layers size={13} className="text-rose-400" />
-            <span>{group.photos.length} Foto Sovrapposte — Clicca per Aprire</span>
+            <span>{group.photos.length} overlapping photos — click to open</span>
           </div>
         ) : undefined}
         // Locked Interactive Popup on Click
@@ -220,7 +220,7 @@ const GroupClusterMarker: React.FC<{
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 px-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
                 <Layers size={14} className="text-rose-500" />
-                <span>Foto {activePhotoIdx + 1} di {group.photos.length}</span>
+                <span>Photo {activePhotoIdx + 1} of {group.photos.length}</span>
               </div>
               <button
                 onClick={(e) => {
@@ -234,7 +234,7 @@ const GroupClusterMarker: React.FC<{
                 }`}
               >
                 <Sparkles size={12} />
-                <span>{isSpiderfied ? 'Chiudi Raggera' : 'Disperdi a Raggera'}</span>
+                <span>{isSpiderfied ? 'Collapse fan' : 'Fan out photos'}</span>
               </button>
             </div>
 
@@ -252,14 +252,14 @@ const GroupClusterMarker: React.FC<{
                   <button
                     onClick={handlePrev}
                     className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white shadow-xl backdrop-blur-md transition-all border border-white/20 active:scale-95"
-                    title="Foto precedente"
+                    title="Previous photo"
                   >
                     <ChevronLeft size={18} />
                   </button>
                   <button
                     onClick={handleNext}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white shadow-xl backdrop-blur-md transition-all border border-white/20 active:scale-95"
-                    title="Foto successiva"
+                    title="Next photo"
                   >
                     <ChevronRight size={18} />
                   </button>
@@ -342,7 +342,7 @@ const GroupClusterMarker: React.FC<{
                 tooltip={
                   <div className={`px-2 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold font-mono border border-slate-700 flex items-center gap-1.5`}>
                     <span className={`w-2 h-2 rounded-full ${palette.badge}`}></span>
-                    <span>Foto #{index + 1}: {photo.name}</span>
+                    <span>Photo #{index + 1}: {photo.name}</span>
                   </div>
                 }
                 // Locked Interactive Popup for Spiderfied Pin
@@ -351,7 +351,7 @@ const GroupClusterMarker: React.FC<{
                     <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-white/10">
                       <span className={`text-xs font-bold font-mono ${palette.text} flex items-center gap-1`}>
                         <span className={`w-2 h-2 rounded-full ${palette.badge}`}></span>
-                        Foto #{index + 1} della raggera
+                        Photo #{index + 1} in the fan
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono">{photo.fileSize ? `${(photo.fileSize / 1024).toFixed(0)} KB` : ''}</span>
                     </div>

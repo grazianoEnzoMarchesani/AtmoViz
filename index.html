@@ -5,7 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atmo Viz</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+      /* --- Design: "tinta dal dato" -------------------------------------
+         Il vetro esiste solo sopra la mappa. I pannelli neutri non portano
+         colore; i pannelli che mostrano una misura prendono la tinta della
+         classe di qualità corrente (--tint, da getQualityColor). */
+      body {
+        font-family: 'Familjen Grotesk', system-ui, -apple-system, sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      .av-glass {
+        background: rgba(250, 251, 251, 0.72);
+        -webkit-backdrop-filter: blur(20px) saturate(1.3);
+        backdrop-filter: blur(20px) saturate(1.3);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 1px 2px rgba(26, 28, 30, 0.06), 0 10px 30px rgba(26, 28, 30, 0.10);
+      }
+      .av-glass-dark {
+        background: rgba(24, 27, 31, 0.72);
+        -webkit-backdrop-filter: blur(20px) saturate(1.2);
+        backdrop-filter: blur(20px) saturate(1.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 32px rgba(0, 0, 0, 0.35);
+      }
+      .av-tint {
+        --tint: #9aa0a6;
+        background: color-mix(in srgb, var(--tint) 14%, rgba(250, 251, 251, 0.74));
+        -webkit-backdrop-filter: blur(22px) saturate(1.5);
+        backdrop-filter: blur(22px) saturate(1.5);
+        border: 1px solid color-mix(in srgb, var(--tint) 34%, transparent);
+        box-shadow: 0 1px 2px rgba(26, 28, 30, 0.06), 0 12px 32px rgba(26, 28, 30, 0.10);
+        transition: background-color 400ms ease, border-color 400ms ease;
+      }
+      .av-tint-dark {
+        --tint: #6b7178;
+        background: color-mix(in srgb, var(--tint) 16%, rgba(24, 27, 31, 0.74));
+        -webkit-backdrop-filter: blur(22px) saturate(1.3);
+        backdrop-filter: blur(22px) saturate(1.3);
+        border: 1px solid color-mix(in srgb, var(--tint) 30%, transparent);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        transition: background-color 400ms ease, border-color 400ms ease;
+      }
+      @media (prefers-reduced-transparency: reduce) {
+        .av-glass { background: #f7f8f8; -webkit-backdrop-filter: none; backdrop-filter: none; }
+        .av-glass-dark { background: #1b1e22; -webkit-backdrop-filter: none; backdrop-filter: none; }
+        .av-tint { background: color-mix(in srgb, var(--tint) 14%, #f7f8f8); -webkit-backdrop-filter: none; backdrop-filter: none; }
+        .av-tint-dark { background: color-mix(in srgb, var(--tint) 16%, #1b1e22); -webkit-backdrop-filter: none; backdrop-filter: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .av-tint, .av-tint-dark { transition: none; }
+      }
+
       /* Custom scrollbar for webkit */
       ::-webkit-scrollbar {
         width: 6px;

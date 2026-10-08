@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { UploadCloud, FileText, AlertCircle, Map, Clock, BarChart3, Activity, X, Database, Camera, FolderOpen, Images } from 'lucide-react';
+import { AlertCircle, X, FolderOpen, Images } from 'lucide-react';
 import { parseCSVData, parseExcelFile, convertExcelToDataPoints } from '../utils/dataUtils';
 import { processImageFiles } from '../utils/exifUtils';
 import { DataPoint, GeoPhoto } from '../types';
@@ -37,19 +37,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
       
       if (result.photos.length === 0) {
         if (result.totalProcessed === 0) {
-          throw new Error("Nessun file immagine valido trovato nella selezione.");
+          throw new Error("No valid image files found in the selection.");
         } else {
-          throw new Error(`Analizzate ${result.totalProcessed} immagini, ma nessuna conteneva coordinate GPS nei metadati EXIF.`);
+          throw new Error(`Checked ${result.totalProcessed} images, but none had GPS coordinates in their EXIF metadata.`);
         }
       }
       
-      const statusMsg = `Incorporate ${result.photos.length} foto con GPS EXIF su ${result.totalProcessed} immagini analizzate.`;
+      const statusMsg = `Added ${result.photos.length} of ${result.totalProcessed} photos (the ones with EXIF GPS).`;
       setTimeout(() => {
         onPhotosLoaded(result.photos, statusMsg);
         setIsLoading(false);
       }, 500);
     } catch (err: any) {
-      setError(err.message || "Errore durante la lettura dei metadati EXIF.");
+      setError(err.message || "Could not read the EXIF metadata.");
       setIsLoading(false);
     }
   };
@@ -63,17 +63,17 @@ const FileUpload: React.FC<FileUploadProps> = ({
       const isCsv = file.name.endsWith('.csv');
       
       if (!isExcel && !isCsv) {
-         throw new Error("Formato file non supportato. Carica un file .xlsx, .xls o .csv");
+         throw new Error("Unsupported file format. Upload a .xlsx, .xls or .csv file.");
       }
       
       if (uploadMode === 'sensors') {
          if (!hasExistingGps) {
-            throw new Error("Devi prima caricare un percorso con coordinate GPS per poter allineare questi dati.");
+            throw new Error("Load a GPS route first, so these readings can be aligned to it.");
          }
          const arrayBuffer = await file.arrayBuffer();
          const parsedRows = await parseExcelFile(arrayBuffer);
          if (parsedRows.length === 0) {
-            throw new Error("Nessun dato valido trovato nel file Excel o CSV.");
+            throw new Error("No valid data found in the Excel or CSV file.");
          }
          
          setTimeout(() => {
@@ -86,7 +86,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
             const excelRows = await parseExcelFile(arrayBuffer);
             const hasGps = excelRows.some(r => r.lat !== null && r.lng !== null);
             if (!hasGps) {
-               throw new Error("Questo file non contiene coordinate GPS. Se vuoi caricare dati di sensori senza GPS, usa la scheda 'Dati Centralina'.");
+               throw new Error("This file has no GPS coordinates. To load sensor readings without GPS, use step 2, Sensor readings.");
             }
             const dataPoints = convertExcelToDataPoints(excelRows);
             setTimeout(() => {
@@ -97,7 +97,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
             const text = await file.text();
             const data = await parseCSVData(text);
             if (data.length === 0) {
-              throw new Error("Nessun dato di geolocalizzazione valido trovato nel file CSV.");
+              throw new Error("No valid geolocated data found in the CSV file.");
             }
             setTimeout(() => {
               onDataLoaded(data);
@@ -106,7 +106,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
          }
       }
     } catch (err: any) {
-      setError(err.message || "Errore nel caricamento del file.");
+      setError(err.message || "Could not load the file.");
       setIsLoading(false);
     }
   }, [uploadMode, hasExistingGps, onDataLoaded, onSupplementaryLoaded]);
@@ -143,267 +143,177 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
   };
 
-  // Theme Variables
+  // Theme: the panel is glass only when the map is really behind it (data already loaded, onClose set)
   const isDark = theme === 'dark';
-  const bgColor = isDark ? 'bg-slate-950' : 'bg-slate-50';
-  const textColor = isDark ? 'text-white' : 'text-slate-900';
-  const subTextColor = isDark ? 'text-slate-400' : 'text-slate-500';
-  
-  // Premium Glass Cards
-  const cardBg = isDark 
-    ? 'bg-gradient-to-br from-slate-900/60 to-slate-800/60 border-white/10 shadow-lg' 
-    : 'bg-gradient-to-br from-white/70 to-white/40 border-white/60 shadow-lg shadow-blue-900/5';
+  const overMap = Boolean(onClose);
+  const ink = isDark ? 'text-slate-100' : 'text-[#1a1c1e]';
+  const muted = isDark ? 'text-slate-400' : 'text-[#50565c]';
+  const backdrop = overMap
+    ? (isDark ? 'bg-black/40' : 'bg-black/20')
+    : (isDark ? 'bg-[#121417]' : 'bg-[#eceeef]');
+  const panel = overMap
+    ? (isDark ? 'av-glass-dark' : 'av-glass')
+    : (isDark ? 'bg-[#1b1e22] border border-white/10' : 'bg-white border border-black/[0.06] shadow-[0_1px_2px_rgba(26,28,30,0.06),0_12px_32px_rgba(26,28,30,0.08)]');
+  const primaryBtn = isDark ? 'bg-slate-100 text-[#1a1c1e] hover:bg-white' : 'bg-[#1a1c1e] text-white hover:bg-black';
+  const secondaryBtn = isDark ? 'border border-white/20 text-slate-100 hover:bg-white/10' : 'border border-black/20 text-[#1a1c1e] hover:bg-black/[0.04]';
+  const rowActive = isDark ? 'bg-white/10' : 'bg-black/[0.04]';
 
-  const headingColor = isDark ? 'text-slate-200' : 'text-slate-800';
-  
-  const uploadBoxBase = isDark 
-    ? 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10 backdrop-blur-xl' 
-    : 'border-white/50 bg-white/40 hover:border-white/80 hover:bg-white/60 backdrop-blur-xl';
-    
-  const uploadBoxDrag = isDark
-    ? 'border-cyan-400 bg-cyan-400/10 shadow-[0_0_30px_rgba(34,211,238,0.2)]'
-    : 'border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.2)]';
-
-  const iconContainerBg = isDark 
-    ? 'bg-gradient-to-br from-slate-800 to-slate-900 border-white/10' 
-    : 'bg-gradient-to-br from-white to-slate-50 border-white/60 shadow-sm';
-
-  const closeBtnStyle = isDark
-    ? 'bg-white/10 border-white/10 text-slate-400 hover:text-white hover:bg-white/20'
-    : 'bg-white/40 border-white/40 text-slate-500 hover:text-slate-900 hover:bg-white/80';
+  const steps: { mode: 'gps' | 'sensors' | 'photos'; title: string; hint: string }[] = [
+    { mode: 'gps', title: 'GPS route', hint: 'CSV or XLSX with date, latitude and longitude' },
+    { mode: 'sensors', title: 'Sensor readings', hint: hasExistingGps ? 'XLSX/XLS/CSV, aligned to the route by time' : 'Available after the route: it is needed to align the times' },
+    { mode: 'photos', title: 'FLIR thermal photos', hint: 'A folder or photos with GPS coordinates in the EXIF metadata' },
+  ];
 
   return (
-    <div className={`fixed inset-0 z-50 overflow-y-auto scroll-smooth ${bgColor} ${textColor}`}>
-      {/* Background Decoration (Always visible but subtle) */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-cyan-500/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/20 blur-[120px]" />
-      </div>
-
-      {/* Close Button (only if onClose is provided) */}
+    <div className={`fixed inset-0 z-50 overflow-y-auto ${backdrop} ${ink}`}>
       {onClose && (
         <button 
           onClick={onClose}
-          className={`absolute top-6 right-6 z-50 p-3 rounded-full border transition-all backdrop-blur-md shadow-lg ${closeBtnStyle}`}
+          aria-label="Close"
+          className={`absolute top-5 right-5 z-50 w-11 h-11 flex items-center justify-center rounded-2xl ${isDark ? 'av-glass-dark' : 'av-glass'}`}
         >
-          <X size={24} />
+          <X size={20} />
         </button>
       )}
 
-      <div className="min-h-screen flex flex-col md:flex-row items-center justify-center p-6 md:p-12 relative z-10 gap-12 max-w-7xl mx-auto">
-        
-        {/* Left Column: Copy & Features */}
-        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left space-y-8 animate-in slide-in-from-bottom-10 fade-in duration-700">
-          
-          {/* Branding */}
-          <div>
-             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border shadow-xl backdrop-blur-xl mb-6 ${isDark ? 'bg-slate-900/40 border-white/10 text-cyan-400' : 'bg-white/40 border-white/40 text-blue-600'}`}>
-                <Activity size={18} />
-                <span className="font-bold tracking-wider text-sm uppercase">Environmental Intelligence</span>
-             </div>
-             <h1 className={`text-5xl md:text-7xl font-extrabold tracking-tight mb-4 ${textColor} drop-shadow-sm`}>
-               Atmo <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Viz</span>
-             </h1>
-             <p className={`text-lg md:text-xl max-w-lg leading-relaxed ${subTextColor}`}>
-               Sincronizza e visualizza i dati del tuo percorso GPS con i parametri ambientali misurati dalla tua centralina.
-             </p>
+      <div className="min-h-screen flex items-center justify-center p-4 md:p-8">
+        <main
+          className={`relative w-full max-w-[680px] rounded-3xl p-6 md:p-10 transition-shadow ${panel} ${isDragging ? (isDark ? 'ring-2 ring-slate-100' : 'ring-2 ring-[#1a1c1e]') : ''}`}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-lg font-bold">AtmoViz</span>
+            <span className={`text-sm ${muted}`}>
+              {uploadMode === 'photos' ? 'Drop photos here' : 'Drop a file here'}
+            </span>
           </div>
 
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-xl mt-4">
-             <div className={`p-5 rounded-2xl backdrop-blur-md flex flex-col items-center md:items-start gap-3 border transition-transform hover:-translate-y-1 ${cardBg}`}>
-                <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl ring-1 ring-blue-500/20">
-                   <Map size={24} />
-                </div>
-                <h3 className={`font-bold ${headingColor}`}>Mappe Geografiche</h3>
-                <p className={`text-xs ${subTextColor}`}>Visualizza percorsi, mappe termiche e sensori sul territorio.</p>
-             </div>
-             <div className={`p-5 rounded-2xl backdrop-blur-md flex flex-col items-center md:items-start gap-3 border transition-transform hover:-translate-y-1 ${cardBg}`}>
-                <div className="p-3 bg-cyan-500/10 text-cyan-500 rounded-xl ring-1 ring-cyan-500/20">
-                   <Clock size={24} />
-                </div>
-                <h3 className={`font-bold ${headingColor}`}>Viaggio nel Tempo</h3>
-                <p className={`text-xs ${subTextColor}`}>Riproduci l'esatto percorso temporale con i controlli di playback.</p>
-             </div>
-             <div className={`p-5 rounded-2xl backdrop-blur-md flex flex-col items-center md:items-start gap-3 border transition-transform hover:-translate-y-1 ${cardBg}`}>
-                <div className="p-3 bg-purple-500/10 text-purple-500 rounded-xl ring-1 ring-purple-500/20">
-                   <BarChart3 size={24} />
-                </div>
-                <h3 className={`font-bold ${headingColor}`}>Analisi Dati</h3>
-                <p className={`text-xs ${subTextColor}`}>Misura e correla VOC, PM2.5, Temperatura e Dew Point.</p>
-             </div>
-          </div>
-        </div>
+          {!overMap && (
+            <>
+              <h1 className="mt-6 text-[34px] md:text-[44px] leading-[1.08] font-semibold tracking-tight max-w-[16ch]">
+                Colour comes with your data.
+              </h1>
+              <p className={`mt-3 text-base md:text-[17px] leading-relaxed max-w-[52ch] ${muted}`}>
+                Sync your GPS route with the readings from your sensor station. Each panel then takes the colour of the air quality where you are.
+              </p>
+            </>
+          )}
+          {overMap && <h1 className="mt-4 text-2xl font-semibold">Add data</h1>}
 
-        {/* Right Column: Upload Area */}
-        <div className="w-full md:w-[450px] flex-shrink-0 animate-in slide-in-from-bottom-10 fade-in duration-1000 delay-200">
-          
-          {/* Tabs Mode Selector */}
-          <div className={`flex rounded-xl p-1 mb-4 gap-1 ${isDark ? 'bg-slate-950/80 border border-white/5' : 'bg-slate-200/50 shadow-inner'}`}>
-            <button
-              onClick={() => setUploadMode('gps')}
-              className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${
-                uploadMode === 'gps'
-                  ? (isDark ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/10' : 'bg-white text-blue-600 shadow-sm')
-                  : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')
-              }`}
-            >
-              <Map size={13} />
-              Percorso GPS
-            </button>
-            <button
-              onClick={() => setUploadMode('sensors')}
-              className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${
-                uploadMode === 'sensors'
-                  ? (isDark ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/10' : 'bg-white text-blue-600 shadow-sm')
-                  : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')
-              }`}
-            >
-              <Database size={13} />
-              Sensori
-            </button>
-            <button
-              onClick={() => setUploadMode('photos')}
-              className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${
-                uploadMode === 'photos'
-                  ? (isDark ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'bg-white text-rose-600 shadow-sm')
-                  : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')
-              }`}
-            >
-              <Camera size={13} />
-              Foto FLIR/GPS
-            </button>
-          </div>
-
-          <div 
-            className={`
-              relative w-full rounded-3xl border transition-all duration-300 p-8 md:p-10 flex flex-col items-center text-center shadow-2xl
-              ${isDragging ? `${uploadBoxDrag} scale-[1.02]` : uploadBoxBase}
-            `}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-          >
-            {/* Dashed Border Overlay */}
-             <div className={`absolute inset-4 rounded-2xl border-2 border-dashed pointer-events-none ${isDark ? 'border-white/10' : 'border-slate-300'}`} />
-
-            {isLoading ? (
-              <div className="flex flex-col items-center py-12 relative z-10">
-                <div className="w-16 h-16 border-4 border-rose-500/30 border-t-rose-500 rounded-full animate-spin mb-6 shadow-[0_0_20px_rgba(244,63,94,0.4)]"></div>
-                <p className={`text-xl font-bold ${textColor}`}>Estraggo Metadati EXIF GPS...</p>
-                <p className="text-sm text-rose-400 mt-2 animate-pulse">Lettura coordinate e anteprime immagini...</p>
+          {isLoading ? (
+            <div className="mt-8 flex items-center gap-4 py-6" role="status">
+              <div className={`w-8 h-8 rounded-full border-[3px] animate-spin ${isDark ? 'border-white/20 border-t-slate-100' : 'border-black/10 border-t-[#1a1c1e]'}`} />
+              <div>
+                <p className="font-semibold">{uploadMode === 'photos' ? 'Reading EXIF GPS metadata…' : 'Reading the file…'}</p>
+                <p className={`text-sm ${muted}`}>{uploadMode === 'photos' ? 'Coordinates and image previews' : 'Checking columns and timestamps'}</p>
               </div>
-            ) : (
-              <div className="relative z-10 w-full flex flex-col items-center">
-                
-                {uploadMode === 'sensors' && !hasExistingGps ? (
-                  <div className="py-6 flex flex-col items-center">
-                    <div className="p-4 bg-red-500/10 text-red-500 rounded-full mb-4">
-                      <AlertCircle size={32} />
-                    </div>
-                    <h3 className="font-bold text-lg mb-2">Percorso GPS Mancante</h3>
-                    <p className={`text-sm ${subTextColor} mb-4 max-w-xs leading-relaxed`}>
-                      Carica prima un file georeferenziato nella scheda <strong>'Percorso GPS'</strong> per poter allineare questi dati basandoti sull'orario più vicino.
-                    </p>
-                    <button 
-                      onClick={() => setUploadMode('gps')}
-                      className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-500 transition-colors text-xs"
-                    >
-                      Vai a Percorso GPS
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className={`w-20 h-20 mb-6 rounded-2xl flex items-center justify-center shadow-inner border ${iconContainerBg}`}>
-                      {uploadMode === 'sensors' ? (
-                        <Database className={`w-10 h-10 ${isDragging ? 'text-cyan-500' : 'text-slate-400'}`} />
-                      ) : uploadMode === 'photos' ? (
-                        <Camera className={`w-10 h-10 ${isDragging ? 'text-rose-500' : 'text-rose-400'}`} />
-                      ) : (
-                        <UploadCloud className={`w-10 h-10 ${isDragging ? 'text-cyan-500' : 'text-slate-400'}`} />
+            </div>
+          ) : (
+            <ol className="mt-7 flex flex-col gap-1">
+              {steps.map((step, i) => {
+                const isActive = uploadMode === step.mode;
+                const isBlocked = step.mode === 'sensors' && !hasExistingGps;
+                return (
+                  <li key={step.mode} className={`rounded-2xl transition-colors ${isActive ? rowActive : ''}`}>
+                    <div className="flex items-center gap-4 p-3 md:p-4 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setUploadMode(step.mode)}
+                        aria-pressed={isActive}
+                        className="flex-1 min-w-[220px] flex items-start gap-3 text-left"
+                      >
+                        <span className={`mt-0.5 w-6 h-6 flex-shrink-0 rounded-full border text-[13px] font-semibold flex items-center justify-center ${isActive ? (isDark ? 'bg-slate-100 text-[#1a1c1e] border-slate-100' : 'bg-[#1a1c1e] text-white border-[#1a1c1e]') : (isDark ? 'border-white/30' : 'border-black/25')}`}>
+                          {i + 1}
+                        </span>
+                        <span>
+                          <span className={`block text-[17px] ${isActive ? 'font-semibold' : 'font-medium'} ${isBlocked && !isActive ? muted : ''}`}>
+                            {step.title}{step.mode !== 'gps' && <span className={`font-normal ${muted}`}> · optional</span>}
+                          </span>
+                          <span className={`block text-sm ${muted}`}>{step.hint}</span>
+                        </span>
+                      </button>
+
+                      {isActive && !isBlocked && step.mode !== 'photos' && (
+                        <Tooltip content="Choose a file from your device" theme={theme} position="bottom">
+                          <label className="cursor-pointer">
+                            <input type="file" accept=".csv,.xlsx,.xls" className="sr-only" onChange={onInputChange} />
+                            <span className={`inline-flex items-center h-12 px-6 rounded-xl text-base font-semibold transition-colors ${primaryBtn}`}>
+                              Choose file
+                            </span>
+                          </label>
+                        </Tooltip>
+                      )}
+
+                      {isActive && step.mode === 'photos' && (
+                        <div className="flex gap-2 flex-wrap">
+                          <label className="cursor-pointer">
+                            <input 
+                              type="file" 
+                              multiple 
+                              // @ts-ignore
+                              webkitdirectory="" 
+                              directory="" 
+                              className="sr-only" 
+                              onChange={(e) => e.target.files && handlePhotoFiles(e.target.files)} 
+                            />
+                            <span className={`inline-flex items-center gap-2 h-12 px-5 rounded-xl text-[15px] font-semibold transition-colors ${primaryBtn}`}>
+                              <FolderOpen size={18} />
+                              Folder
+                            </span>
+                          </label>
+                          <label className="cursor-pointer">
+                            <input 
+                              type="file" 
+                              multiple 
+                              accept="image/*,.jpg,.jpeg,.tif,.tiff" 
+                              className="sr-only" 
+                              onChange={(e) => e.target.files && handlePhotoFiles(e.target.files)} 
+                            />
+                            <span className={`inline-flex items-center gap-2 h-12 px-5 rounded-xl text-[15px] font-medium transition-colors ${secondaryBtn}`}>
+                              <Images size={18} />
+                              Single photos
+                            </span>
+                          </label>
+                        </div>
                       )}
                     </div>
-                    
-                    <h2 className={`text-2xl font-bold mb-2 ${textColor}`}>
-                      {uploadMode === 'photos' ? "Carica Foto GPS" : uploadMode === 'sensors' ? "Carica Rilevazioni" : (onClose ? "Aggiungi Percorso" : "Carica File Percorso")}
-                    </h2>
-                    <p className={`${subTextColor} mb-6 text-sm leading-relaxed`}>
-                      {uploadMode === 'photos'
-                        ? "Seleziona una cartella completa o un gruppo di foto termiche/JPEG. Verranno posizionate sulla mappa in base all'EXIF GPS."
-                        : uploadMode === 'sensors' 
-                        ? "Trascina qui il file Excel (XLSX/XLS/CSV) della centralina per allinearlo al percorso." 
-                        : "Trascina qui il file georeferenziato del tuo percorso (CSV/XLSX)."}
-                    </p>
 
-                    {uploadMode === 'photos' ? (
-                      <div className="flex flex-col sm:flex-row gap-3 w-full">
-                        {/* Folder Selection Input */}
-                        <label className="cursor-pointer group flex-1">
-                          <input 
-                            type="file" 
-                            multiple 
-                            // @ts-ignore
-                            webkitdirectory="" 
-                            directory="" 
-                            className="hidden" 
-                            onChange={(e) => e.target.files && handlePhotoFiles(e.target.files)} 
-                          />
-                          <span className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-rose-500/20 transition-all transform group-hover:scale-[1.02]">
-                            <FolderOpen size={16} />
-                            Seleziona Cartella
-                          </span>
-                        </label>
-
-                        {/* Multiple File Selection Input */}
-                        <label className="cursor-pointer group flex-1">
-                          <input 
-                            type="file" 
-                            multiple 
-                            accept="image/*,.jpg,.jpeg,.tif,.tiff" 
-                            className="hidden" 
-                            onChange={(e) => e.target.files && handlePhotoFiles(e.target.files)} 
-                          />
-                          <span className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/10 shadow-lg transition-all transform group-hover:scale-[1.02]">
-                            <Images size={16} />
-                            Seleziona Foto
-                          </span>
-                        </label>
-                      </div>
-                    ) : (
-                      <Tooltip content="Seleziona file dal tuo dispositivo" theme={theme} position="bottom">
-                          <label className="cursor-pointer group w-full">
-                          <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={onInputChange} />
-                          <span className="block w-full py-4 px-8 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold shadow-lg shadow-cyan-500/25 transition-all transform group-hover:scale-[1.02]">
-                              Sfoglia File
-                          </span>
-                          </label>
-                      </Tooltip>
-                    )}
-
-                    {error && (
-                      <div className="mt-6 w-full flex items-start text-left text-red-500 bg-red-500/10 p-4 rounded-lg border border-red-500/20 backdrop-blur-sm">
-                        <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{error}</span>
+                    {isActive && isBlocked && (
+                      <div className="px-4 pb-4 md:pl-[52px] flex items-center gap-3 flex-wrap">
+                        <p className={`text-sm ${muted} max-w-[44ch]`}>
+                          Load a GPS route first: each sensor reading is matched to the route point closest in time.
+                        </p>
+                        <button 
+                          onClick={() => setUploadMode('gps')}
+                          className={`h-10 px-4 rounded-xl text-sm font-semibold transition-colors ${secondaryBtn}`}
+                        >
+                          Go to GPS route
+                        </button>
                       </div>
                     )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
 
-                    <div className={`mt-8 pt-6 border-t w-full flex justify-center text-xs items-center gap-2 ${isDark ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
-                      <FileText className="w-4 h-4" />
-                      <span>
-                        {uploadMode === 'photos'
-                          ? "Estraggo automaticamente Latitudine e Longitudine dai metadati FLIR/EXIF"
-                          : uploadMode === 'sensors' 
-                          ? "Supporta Temperature, Humidity e Dew Point" 
-                          : "Compatibile con tracciati GPS e formati standard AQS"}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+          {error && (
+            <div role="alert" className={`mt-4 flex items-start gap-2 p-4 rounded-xl text-sm ${isDark ? 'bg-red-500/15 text-red-200' : 'bg-red-50 text-red-800'}`}>
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
 
+          <p className={`mt-6 text-sm ${muted}`}>
+            {uploadMode === 'photos'
+              ? 'Latitude and longitude are read automatically from the FLIR/EXIF metadata.'
+              : uploadMode === 'sensors' 
+              ? 'Supports temperature, humidity and dew point.' 
+              : 'Works with GPS tracks and standard AQS formats.'}
+          </p>
+        </main>
       </div>
     </div>
   );

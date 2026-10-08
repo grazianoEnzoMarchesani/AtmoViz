@@ -47,14 +47,9 @@ const PersonaSelector: React.FC<PersonaSelectorProps> = ({ selectedPersona, onSe
   const activeItem = personas.find(p => p.id === selectedPersona) || personas[0];
   const isDark = theme === 'dark';
 
-  // Premium Glass Styles
-  const glassTrigger = isDark 
-    ? 'bg-slate-900/60 border-white/10 text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:bg-slate-800/60' 
-    : 'bg-white/60 border-white/40 text-slate-900 shadow-[0_4px_20px_rgba(31,38,135,0.1)] hover:bg-white/70';
-
-  const glassDropdown = isDark
-    ? 'bg-slate-900/90 border-white/10'
-    : 'bg-white/90 border-white/50';
+  // Neutral glass: the profile changes thresholds, it carries no data colour itself
+  const glassTrigger = isDark ? 'av-glass-dark text-slate-100' : 'av-glass text-[#1a1c1e]';
+  const glassDropdown = isDark ? 'av-glass-dark' : 'av-glass';
 
   return (
     <div 
@@ -67,18 +62,15 @@ const PersonaSelector: React.FC<PersonaSelectorProps> = ({ selectedPersona, onSe
         <Tooltip content="Select Health Risk Profile" theme={theme} position="right">
             <div 
                 className={`
-                    flex items-center gap-2 md:gap-3 p-1.5 pr-3 md:p-2 md:pr-4 rounded-full backdrop-blur-xl border cursor-pointer transition-all duration-300
+                    flex items-center gap-2 md:gap-3 min-h-[44px] px-3 md:px-4 rounded-2xl cursor-pointer transition-colors
                     ${glassTrigger}
                 `}
             >
-                <div className={`p-1.5 md:p-2 rounded-full text-white ${activeItem.color} shadow-sm ring-1 ring-white/20`}>
-                    {/* Clone icon to adjust size on mobile if needed, though size 18 is usually fine */}
-                    {activeItem.icon}
-                </div>
-                <div className="flex flex-col">
-                    {/* Hide the label "Risk Profile" on mobile to save vertical/horizontal space */}
-                    <span className={`hidden md:block text-[10px] uppercase font-bold leading-none mb-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Risk Profile</span>
-                    <span className="text-xs md:text-sm font-bold leading-tight">{activeItem.label}</span>
+                <span className={`flex-shrink-0 ${isDark ? 'text-slate-300' : 'text-[#50565c]'}`}>{activeItem.icon}</span>
+                <div className="flex items-baseline gap-1.5 min-w-0">
+                    {/* Hide the "Risk profile" prefix on mobile to save horizontal space */}
+                    <span className={`hidden md:inline text-[13px] ${isDark ? 'text-slate-400' : 'text-[#50565c]'}`}>Risk profile</span>
+                    <span className="text-sm font-semibold leading-tight truncate">{activeItem.label}</span>
                 </div>
                 <ChevronRight size={16} className={`ml-1 md:ml-2 opacity-40 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
             </div>
@@ -90,7 +82,7 @@ const PersonaSelector: React.FC<PersonaSelectorProps> = ({ selectedPersona, onSe
             ${isExpanded ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}
         `}>
             <div className={`
-                p-2 rounded-2xl border shadow-2xl flex flex-col gap-1 backdrop-blur-2xl
+                p-1.5 rounded-2xl flex flex-col gap-0.5
                 ${glassDropdown}
             `}>
                 {personas.map((p) => (
@@ -101,25 +93,20 @@ const PersonaSelector: React.FC<PersonaSelectorProps> = ({ selectedPersona, onSe
                             setIsExpanded(false);
                         }}
                         className={`
-                            flex items-start gap-3 p-3 rounded-xl text-left transition-colors relative overflow-hidden
+                            flex items-start gap-3 p-3 rounded-xl text-left transition-colors
                             ${selectedPersona === p.id 
-                                ? (isDark ? 'bg-white/10' : 'bg-black/5') 
-                                : (isDark ? 'hover:bg-white/5' : 'hover:bg-black/5')}
+                                ? (isDark ? 'bg-white/15' : 'bg-black/[0.08]') 
+                                : (isDark ? 'hover:bg-white/5' : 'hover:bg-black/[0.04]')}
                         `}
                     >
-                         {/* Selection Indicator */}
-                         {selectedPersona === p.id && (
-                            <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${p.color}`} />
-                        )}
-
-                        <div className={`p-2 rounded-lg mt-0.5 ${p.color} text-white shadow-sm ring-1 ring-white/20`}>
+                        <span className={`mt-0.5 flex-shrink-0 ${isDark ? 'text-slate-300' : 'text-[#50565c]'}`}>
                             {p.icon}
-                        </div>
+                        </span>
                         <div>
-                            <div className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            <div className={`text-sm ${selectedPersona === p.id ? 'font-semibold' : 'font-medium'} ${isDark ? 'text-white' : 'text-[#1a1c1e]'}`}>
                                 {p.label}
                             </div>
-                            <div className={`text-xs leading-tight mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <div className={`text-xs leading-snug mt-0.5 ${isDark ? 'text-slate-400' : 'text-[#50565c]'}`}>
                                 {p.desc}
                             </div>
                         </div>

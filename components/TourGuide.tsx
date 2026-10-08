@@ -254,7 +254,14 @@ const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onClose, theme }) 
   const isLastStep = findNextVisibleStep(currentStepIndex, 1) === -1;
   const isFirstStep = findNextVisibleStep(currentStepIndex, -1) === -1;
 
-  const bgClass = theme === 'dark' ? 'bg-slate-800 text-white border-slate-600' : 'bg-white text-slate-900 border-slate-200';
+  const isDark = theme === 'dark';
+  // Solid card: it sits on the dimmed overlay, not directly on the map
+  const bgClass = isDark ? 'bg-[#1b1e22] text-slate-100 border-white/10' : 'bg-white text-[#1a1c1e] border-black/10';
+  const muted = isDark ? 'text-slate-400' : 'text-[#50565c]';
+  // Count only the steps whose target is on screen (e.g. the mobile menu is hidden on desktop)
+  const visibleSteps = steps.map((st, i) => (getVisibleElement(st.target) ? i : -1)).filter(i => i !== -1);
+  const visibleCount = visibleSteps.length || steps.length;
+  const visiblePosition = Math.max(0, visibleSteps.indexOf(currentStepIndex)) + 1;
 
   return createPortal(
     <div className="fixed inset-0 z-[99998] pointer-events-auto">
@@ -280,7 +287,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onClose, theme }) 
             y="0" 
             width="100%" 
             height="100%" 
-            fill="rgba(0,0,0,0.6)" 
+            fill="rgba(0,0,0,0.45)" 
             mask="url(#tour-mask)" 
             />
             {/* Highlight Border */}
@@ -291,9 +298,8 @@ const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onClose, theme }) 
             height={targetRect.height + 8} 
             rx="8"
             fill="none"
-            stroke={theme === 'dark' ? '#22d3ee' : '#2563eb'}
-            strokeWidth="3"
-            className="animate-pulse"
+            stroke="#ffffff"
+            strokeWidth="2"
             />
         </svg>
       )}
@@ -311,7 +317,7 @@ const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onClose, theme }) 
             transform: `scale(${layout.opacity === 0 ? 0.95 : 1})`,
         }}
         className={`
-            absolute rounded-xl shadow-2xl p-5 border flex flex-col gap-3 transition-all duration-300
+            absolute rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.25)] p-5 border flex flex-col gap-3 transition-all duration-300
             ${bgClass}
         `}
         onClick={(e) => e.stopPropagation()}
@@ -336,42 +342,40 @@ const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onClose, theme }) 
         )}
 
         <div className="flex items-start justify-between relative z-10">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <div className="bg-cyan-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-               {currentStepIndex + 1}
-            </div>
-            <span>{currentStep?.title}</span>
-          </h3>
-          <button onClick={onClose} className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors flex-shrink-0">
-            <X size={16} className="opacity-50" />
+          <div>
+            <div className={`text-[13px] ${muted}`}>Step {visiblePosition} of {visibleCount}</div>
+            <h3 className="font-semibold text-lg leading-snug mt-0.5">{currentStep?.title}</h3>
+          </div>
+          <button onClick={onClose} aria-label="Close tour" className={`w-9 h-9 -mr-2 -mt-1 flex items-center justify-center rounded-xl transition-colors flex-shrink-0 ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/[0.06]'}`}>
+            <X size={18} />
           </button>
         </div>
         
-        <p className="text-sm leading-relaxed opacity-80 relative z-10">
+        <p className={`text-[15px] leading-relaxed relative z-10 ${isDark ? 'text-slate-300' : 'text-[#3d4248]'}`}>
           {currentStep?.content}
         </p>
 
-        <div className="flex items-center justify-between mt-2 pt-3 border-t border-black/5 dark:border-white/5 relative z-10">
+        <div className={`flex items-center justify-between mt-1 pt-3 border-t relative z-10 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
            <button 
              onClick={handlePrev}
              disabled={isFirstStep}
-             className={`text-xs font-bold uppercase py-2 px-3 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${isFirstStep ? 'opacity-30 cursor-not-allowed' : ''}`}
+             className={`h-10 px-3 -ml-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/[0.06]'} ${isFirstStep ? 'opacity-30 cursor-not-allowed' : ''}`}
            >
              Back
            </button>
            
            <div className="flex items-center gap-2">
-             <div className="flex gap-1 mr-2">
-                {steps.map((_, i) => (
+             <div className="flex gap-1 mr-2" aria-hidden="true">
+                {(visibleSteps.length ? visibleSteps : steps.map((_, i) => i)).map((i) => (
                     <div 
                         key={i} 
-                        className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${i === currentStepIndex ? 'bg-cyan-500' : 'bg-gray-300 dark:bg-gray-600'}`} 
+                        className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${i === currentStepIndex ? (isDark ? 'bg-slate-100' : 'bg-[#1a1c1e]') : (isDark ? 'bg-white/20' : 'bg-black/15')}`} 
                     />
                 ))}
              </div>
              <button 
                 onClick={handleNext}
-                className="flex items-center gap-1 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold uppercase py-2 px-4 rounded-lg shadow-lg shadow-cyan-500/25 transition-all transform active:scale-95"
+                className={`flex items-center gap-1 h-10 px-4 rounded-xl text-sm font-semibold transition-colors ${isDark ? 'bg-slate-100 text-[#1a1c1e] hover:bg-white' : 'bg-[#1a1c1e] text-white hover:bg-black'}`}
              >
                 {isLastStep ? 'Finish' : 'Next'}
                 {!isLastStep && <ChevronRight size={14} />}
