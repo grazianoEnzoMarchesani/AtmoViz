@@ -1,6 +1,6 @@
 # AtmoViz
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23326027.svg)](https://doi.org/10.5281/zenodo.23326027)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 A browser-based tool for exploring **geolocated environmental measurements**
@@ -83,7 +83,9 @@ path. Change it if you serve the build from somewhere else.
 
 ## Network access
 
-Nothing you load leaves the browser. The page does contact:
+Nothing you load leaves the browser, no cookies are set and nothing is written to
+browser storage. The in-app **Privacy notice** (shield icon, or the link on the
+start screen) spells out what each service below can see. The page does contact:
 
 - **OpenFreeMap** (`tiles.openfreemap.org`) for the base-map vector tiles and
   fonts. No account or API key is needed.
@@ -133,7 +135,7 @@ record is the authoritative citation; [`CITATION.cff`](CITATION.cff) carries the
 same metadata, and GitHub's *Cite this repository* button reads it.
 
 > Marchesani, G. E., Cocci Grifoni, R., & Riera, D. (2026). *AtmoViz* (v1.0.0)
-> [Software]. Zenodo. https://doi.org/10.5281/zenodo.XXXXXXX
+> [Software]. Zenodo. https://doi.org/10.5281/zenodo.23326027
 
 ## Authors
 

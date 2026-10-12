@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
   Moon, Sun, Route, CircleDot, Flame, ListFilter, 
   UploadCloud, BarChart2, Scaling, Navigation, Locate, 
-  FileText, Info, Menu, X, Settings2, HelpCircle, Camera
+  FileText, Info, Menu, X, Settings2, HelpCircle, Camera, ShieldCheck
 } from 'lucide-react';
 import { VisualizationMode } from '../types';
 import Tooltip from './Tooltip';
@@ -22,6 +22,8 @@ interface ControlBarProps {
   toggleUpload: () => void;
   toggleFilter: () => void;
   toggleGuide: () => void;
+  togglePrivacy: () => void;
+  isPrivacyOpen: boolean;
   toggleTour: () => void;
   isStatsOpen: boolean;
   isFilterOpen: boolean;
@@ -38,8 +40,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
   visualizationMode, setVisualizationMode,
   useDynamicHeatmapRadius, toggleDynamicRadius,
   isFollowing, onFollowToggle,
-  toggleStats, toggleReport, toggleUpload, toggleFilter, toggleGuide, toggleTour,
-  isStatsOpen, isFilterOpen, isReportOpen, isGuideOpen, isUploadOpen,
+  toggleStats, toggleReport, toggleUpload, toggleFilter, toggleGuide, togglePrivacy, toggleTour,
+  isStatsOpen, isFilterOpen, isReportOpen, isGuideOpen, isPrivacyOpen, isUploadOpen,
   isPhotoLayerVisible = true, togglePhotoLayer, photoCount = 0
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -196,6 +198,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
                 tooltipPosition="bottom-end"
              />
              <ActionBtn 
+                onClick={togglePrivacy}
+                isActive={isPrivacyOpen}
+                icon={ShieldCheck}
+                label="Privacy"
+                tooltipPosition="bottom-end"
+             />
+             <ActionBtn 
                 onClick={toggleTour}
                 icon={HelpCircle}
                 label="Start Tour"
@@ -260,6 +269,14 @@ const ControlBar: React.FC<ControlBarProps> = ({
                            >
                                <Info size={20} className="" />
                                <span className="font-bold">Health Guide</span>
+                           </button>
+
+                           <button 
+                               onClick={() => { togglePrivacy(); setIsMobileMenuOpen(false); }}
+                               className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors border ${isPrivacyOpen ? (isDark ? 'bg-white/15 border-white/20' : 'bg-black/[0.08] border-black/10') : (isDark ? 'bg-slate-800/50 border-white/10 hover:bg-slate-800 text-slate-200' : 'bg-white/50 border-white/50 hover:bg-white text-slate-700')}`}
+                           >
+                               <ShieldCheck size={20} />
+                               <span className="font-bold">Privacy</span>
                            </button>
                       </div>
                   </div>

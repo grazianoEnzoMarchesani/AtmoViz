@@ -11,6 +11,7 @@ interface FileUploadProps {
   onPhotosLoaded: (photos: GeoPhoto[], statusMsg?: string) => void;
   hasExistingGps: boolean;
   onClose?: () => void;
+  onOpenPrivacy?: () => void;
   theme: 'light' | 'dark';
 }
 
@@ -20,6 +21,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   onPhotosLoaded,
   hasExistingGps, 
   onClose, 
+  onOpenPrivacy,
   theme 
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -313,6 +315,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
               ? 'Supports temperature, humidity and dew point.' 
               : 'Works with GPS tracks and standard AQS formats.'}
           </p>
+          {onOpenPrivacy && (
+            <p className={`mt-2 text-sm ${muted}`}>
+              Your files stay in your browser.{' '}
+              <button type="button" onClick={onOpenPrivacy} className="underline underline-offset-2">Privacy notice</button>
+            </p>
+          )}
         </main>
       </div>
     </div>

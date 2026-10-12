@@ -9,6 +9,7 @@ import ReferenceGuide from './components/ReferenceGuide';
 import FilterPanel from './components/FilterPanel';
 import StatsModal from './components/StatsModal';
 import ReportModal from './components/ReportModal';
+import PrivacyModal from './components/PrivacyModal';
 import PersonaSelector from './components/PersonaSelector';
 import ControlBar from './components/ControlBar';
 import Tooltip from './components/Tooltip';
@@ -48,6 +49,7 @@ const App: React.FC = () => {
   
   // State for Stats Modal
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
   // State for Report Modal
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -263,6 +265,10 @@ const App: React.FC = () => {
     setIsStatsOpen(!isStatsOpen);
   };
 
+  const togglePrivacy = () => {
+    setIsPrivacyOpen(!isPrivacyOpen);
+  };
+
   const toggleReport = () => {
     setIsReportOpen(!isReportOpen);
   };
@@ -464,6 +470,8 @@ const App: React.FC = () => {
             toggleUpload={toggleUpload}
             toggleFilter={toggleFilter}
             toggleGuide={toggleGuide}
+            togglePrivacy={togglePrivacy}
+            isPrivacyOpen={isPrivacyOpen}
             toggleTour={() => setIsTourOpen(true)}
             isStatsOpen={isStatsOpen}
             isReportOpen={isReportOpen}
@@ -527,6 +535,7 @@ const App: React.FC = () => {
                 onPhotosLoaded={handlePhotosLoaded}
                 hasExistingGps={allData.length > 0}
                 onClose={(allData.length > 0 || photos.length > 0) ? () => setIsUploadOpen(false) : undefined}
+                onOpenPrivacy={() => setIsPrivacyOpen(true)}
                 theme={theme}
            />
         </div>
@@ -616,6 +625,13 @@ const App: React.FC = () => {
         data={data}
         theme={theme}
         persona={selectedPersona}
+      />
+
+      {/* Privacy notice */}
+      <PrivacyModal
+        isOpen={isPrivacyOpen}
+        onClose={togglePrivacy}
+        theme={theme}
       />
 
     </div>
