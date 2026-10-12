@@ -83,16 +83,21 @@ path. Change it if you serve the build from somewhere else.
 
 ## Network access
 
-Nothing you load leaves the browser, no cookies are set and nothing is written to
-browser storage. The in-app **Privacy notice** (shield icon, or the link on the
-start screen) spells out what each service below can see. The page does contact:
+Nothing you load leaves the browser, and no cookies are set. Fonts (Familjen
+Grotesk, via `@fontsource`) and styles (Tailwind, compiled at build time) are
+bundled, so the page makes **no request to any third party** when it opens.
 
-- **OpenFreeMap** (`tiles.openfreemap.org`) for the base-map vector tiles and
-  fonts. No account or API key is needed.
-- **Google Fonts** and the **Tailwind CDN**, loaded from `index.html`, for
-  typography and styling.
-- **Google's Gemini API**, only if you build with an API key and generate a
-  report (below).
+The one exception is the base map. On first visit a dialog asks whether to load
+it; only after you accept does the app request vector tiles and fonts from
+**OpenFreeMap** (`tiles.openfreemap.org`, no account or API key), which then
+sees your IP address and the area you are viewing. If you decline, the map
+background stays blank and everything else works. The choice is stored in
+`localStorage` (`atmoviz.mapConsent`) for six months and can be changed from the
+in-app **Privacy notice** (shield icon, or the link on the start screen), which
+also spells out what each service can see.
+
+Hosting on GitHub Pages is, of course, also a request to GitHub. The optional
+Gemini summary is described below.
 
 ### Optional AI summary
 

@@ -92,7 +92,16 @@ const darkLayer = (layer: LayerSpecification): LayerSpecification | null => {
 
 const absoluteUrl = (path: string) => new URL(import.meta.env.BASE_URL + path, window.location.href).href;
 
-export const buildBaseStyle = (theme: 'light' | 'dark'): StyleSpecification => {
+// Without consent the base map is just a flat background: no tile source, no glyphs, no request.
+const offlineStyle = (theme: 'light' | 'dark'): StyleSpecification => ({
+  version: 8,
+  name: 'No base map',
+  sources: {},
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': theme === 'dark' ? '#1b1e22' : '#eceeef' } }],
+});
+
+export const buildBaseStyle = (theme: 'light' | 'dark', withTiles: boolean = true): StyleSpecification => {
+  if (!withTiles) return offlineStyle(theme);
   const layers = (tonerStyle.layers as unknown[]).map(l => mapFonts(l) as LayerSpecification);
   return {
     version: 8,

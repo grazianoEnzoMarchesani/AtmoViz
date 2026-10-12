@@ -10,6 +10,7 @@ import FilterPanel from './components/FilterPanel';
 import StatsModal from './components/StatsModal';
 import ReportModal from './components/ReportModal';
 import PrivacyModal from './components/PrivacyModal';
+import MapConsentDialog from './components/MapConsentDialog';
 import PersonaSelector from './components/PersonaSelector';
 import ControlBar from './components/ControlBar';
 import Tooltip from './components/Tooltip';
@@ -626,6 +627,9 @@ const App: React.FC = () => {
         theme={theme}
         persona={selectedPersona}
       />
+
+      {/* Map consent: first thing the visitor sees; no third-party request before the answer */}
+      <MapConsentDialog theme={theme} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
 
       {/* Privacy notice */}
       <PrivacyModal

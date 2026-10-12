@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { setMapConsent, useMapConsent } from '../utils/mapConsent';
 
 interface PrivacyModalProps {
   isOpen: boolean;
@@ -11,10 +12,11 @@ const UPDATED = 'October 2026';
 
 // This text describes what the app really does. If a third-party service, a stored value
 // or a purpose changes, change it here in the same commit. Network calls to keep in sync:
-// index.html (Tailwind CDN, Google Fonts), utils/mapStyle.ts (OpenFreeMap),
+// utils/mapStyle.ts + utils/mapConsent.ts (OpenFreeMap, only after consent),
 // components/ReportModal.tsx (Gemini, only when built with GEMINI_API_KEY).
 
 const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) => {
+  const consent = useMapConsent();
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -44,7 +46,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) =
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
@@ -71,16 +73,40 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) =
           <P>
             AtmoViz processes your measurement files and photos <strong>entirely in your browser</strong>.
             Nothing you load — sensor readings, GPS tracks, photos or their metadata — is uploaded to a
-            server. The app sets no cookies, stores nothing on your device, runs no analytics, carries no
-            advertising and does not profile its visitors.
+            server. The app sets no cookies, runs no analytics, carries no advertising and does not profile
+            its visitors. Fonts and styling are served from this same site: no third-party script or font is loaded.
           </P>
           <P>
-            Like any web page it does contact a few third-party services to load fonts, styling and map
-            tiles, and that is the one place where information about you leaves your device: <strong>your IP
-            address</strong> reaches those services, and the map provider can tell roughly <strong>where on
-            Earth your route is</strong>. These requests are made as soon as they are needed, <strong>without
-            a consent prompt</strong>. Section 3 lists each service and what it can see.
+            One feature reaches a third party, and <strong>it stays off until you accept it</strong>: the
+            base map, whose tiles come from OpenFreeMap. If you accept, <strong>your IP address</strong> reaches
+            that service and it can tell roughly <strong>where on Earth your route is</strong>. If you decline,
+            the map background stays blank and the rest of the app works the same.
           </P>
+
+          <div className={`rounded-xl border p-3 mt-3 ${hairline}`}>
+            <div className={`text-[13px] font-semibold uppercase tracking-wide mb-2 ${subText}`}>Your choice</div>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-[15px]">
+                Base map from OpenFreeMap:{' '}
+                <strong>{consent === 'granted' ? 'on' : consent === 'denied' ? 'off' : 'not chosen yet'}</strong>
+              </span>
+              {consent === 'granted' ? (
+                <button
+                  onClick={() => setMapConsent('denied')}
+                  className={`h-9 px-4 rounded-lg border text-sm font-semibold ${isDark ? 'border-white/20 hover:bg-white/10' : 'border-black/20 hover:bg-black/[0.06]'}`}
+                >
+                  Turn off
+                </button>
+              ) : (
+                <button
+                  onClick={() => setMapConsent('granted')}
+                  className={`h-9 px-4 rounded-lg text-sm font-semibold ${isDark ? 'bg-slate-100 text-[#1a1c1e]' : 'bg-[#1a1c1e] text-white'}`}
+                >
+                  Accept and turn on
+                </button>
+              )}
+            </div>
+          </div>
 
           <H>1. Data controller</H>
           <P>
@@ -101,13 +127,15 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) =
               contain personal data in their EXIF metadata (GPS position, date and time, camera model, sometimes
               serial number or operator name). AtmoViz reads it to place the photo on the map and never transmits it.
             </li>
-            <li><strong>PDF reports</strong> are generated in the browser. The file is yours to share, and where
-              it shows other people’s property or people you are responsible for how you use it.</li>
+            <li><strong>PDF reports</strong> are generated in the browser. The file is yours to share; where
+              it shows other people’s property or people, you are responsible for how you use it.</li>
             <li>
-              <strong>No storage.</strong> The app writes nothing to cookies, <code>localStorage</code>,
-              <code>sessionStorage</code> or IndexedDB. Everything you load is held in memory and is gone when you
-              close or reload the tab. This was checked on the deployed build: no cookie is set and no browser
-              storage is written.
+              <strong>One stored value, and no cookies.</strong> The only thing the app writes to your browser is
+              your answer about the base map (<code>atmoviz.mapConsent</code> in <code>localStorage</code>, with the
+              date). It identifies nobody, it is not sent anywhere, and it expires after six months, after which you
+              are asked again. You can delete it from your browser settings at any time. Everything else you
+              load is held in memory and is gone when you close or reload the tab. This was checked on the built
+              app: no cookie is set and nothing else is stored.
             </li>
             <li>
               <strong>No telemetry.</strong> There is no analytics, error reporting, tracking pixel, advertising
@@ -117,9 +145,10 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) =
 
           <H>3. Services contacted by the page</H>
           <P>
-            In each case the service receives what any web request carries: your <strong>IP address</strong>,
-            browser information (user agent) and the address of this site (the <em>referrer</em>). None of them
-            receives the contents of your files, your photos or their metadata.
+            Only two parties are involved, and only one of them is optional. In each case the service receives what
+            any web request carries: your <strong>IP address</strong>, browser information (user agent) and the
+            address of this site (the <em>referrer</em>). Neither receives the contents of your files, your photos
+            or their metadata.
           </P>
           <div className="overflow-x-auto mb-2">
             <table className="w-full text-[13px] border-collapse">
@@ -133,22 +162,8 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) =
               <tbody className="align-top">
                 <tr>
                   <td className={`p-2 border ${hairline}`}>GitHub Pages (GitHub, Inc.)</td>
-                  <td className={`p-2 border ${hairline}`}>Hosts the app; keeps standard access logs.</td>
-                  <td className={`p-2 border ${hairline}`}>Every visit</td>
-                </tr>
-                <tr>
-                  <td className={`p-2 border ${hairline}`}>Google Fonts (Google LLC)</td>
-                  <td className={`p-2 border ${hairline}`}>Loads the Familjen Grotesk typeface (stylesheet from fonts.googleapis.com, font files from fonts.gstatic.com).</td>
-                  <td className={`p-2 border ${hairline}`}>Every visit</td>
-                </tr>
-                <tr>
-                  <td className={`p-2 border ${hairline}`}>Tailwind CDN (cdn.tailwindcss.com)</td>
-                  <td className={`p-2 border ${hairline}`}>
-                    Loads the CSS framework used for styling. This is a <strong>script that runs inside the
-                    page</strong>, so it could in principle read anything the page holds; it is a known,
-                    widely used library, but it is third-party code.
-                  </td>
-                  <td className={`p-2 border ${hairline}`}>Every visit</td>
+                  <td className={`p-2 border ${hairline}`}>Hosts the app, including its fonts and styles; keeps standard access logs.</td>
+                  <td className={`p-2 border ${hairline}`}>Every visit (unavoidable: it is where the page comes from)</td>
                 </tr>
                 <tr>
                   <td className={`p-2 border ${hairline}`}><A href="https://openfreemap.org">OpenFreeMap</A></td>
@@ -157,7 +172,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) =
                     together with your IP address, the provider can tell <strong>which area your route covers</strong>.
                     It never receives the measurements, timestamps or photos themselves.
                   </td>
-                  <td className={`p-2 border ${hairline}`}>Once the map is shown, after you load data or photos</td>
+                  <td className={`p-2 border ${hairline}`}><strong>Only after you accept</strong> the base map</td>
                 </tr>
                 <tr>
                   <td className={`p-2 border ${hairline}`}>Google Gemini API (Google LLC)</td>
@@ -176,25 +191,27 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, theme }) =
           </div>
           <P>
             Each provider processes these technical data as an independent controller under its own policy.
-            Some are based in the United States; transfers rely on the EU–US Data Privacy Framework and
-            standard contractual clauses where applicable.
+            GitHub and Google are based in the United States; transfers rely on the EU–US Data Privacy Framework
+            and standard contractual clauses where applicable.
           </P>
           <UL>
             <li>
-              <strong>Purposes:</strong> delivering the page, rendering the map, securing the infrastructure.
+              <strong>Purposes:</strong> delivering the page; drawing the base map when you ask for it.
             </li>
             <li>
-              <strong>Legal basis:</strong> the controller’s legitimate interest in providing a working service,
-              Article 6(1)(f) GDPR. The controller has no access to hosting logs and uses them for nothing.
+              <strong>Legal basis:</strong> for the base map, your <strong>consent</strong>, Article 6(1)(a) GDPR,
+              which you can withdraw at any time from the box at the top of this notice (withdrawal does not
+              undo requests already made). For hosting, the controller’s legitimate interest in providing a
+              working service, Article 6(1)(f); the controller has no access to hosting logs and uses them for nothing.
             </li>
             <li>
               <strong>Not collected by the controller:</strong> the controller operates no server and receives
               neither your IP address nor anything else about you; the logs above stay with the providers.
             </li>
             <li>
-              <strong>If you prefer to avoid them:</strong> the code is open source — you can run AtmoViz locally
-              (see the README) and, for example, block these hosts in your browser. Without the map tiles, the
-              data panels still work.
+              <strong>If you decline:</strong> the map background stays blank, nothing is requested from OpenFreeMap,
+              and the data panels, charts, statistics and PDF reports work the same. The code is open source, so you
+              can also run AtmoViz locally (see the README).
             </li>
           </UL>
 

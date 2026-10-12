@@ -8,6 +8,7 @@ import { DataPoint, MetricConfig, VisualizationMode, Persona, GeoPhoto } from '.
 import { DEFAULT_CENTER } from '../constants';
 import { getQualityColor } from '../utils/dataUtils';
 import { buildBaseStyle } from '../utils/mapStyle';
+import { useMapConsent } from '../utils/mapConsent';
 import MapMarker from './MapMarker';
 import PhotoLayer from './PhotoLayer';
 
@@ -110,6 +111,8 @@ const MapBoard: React.FC<MapBoardProps> = ({
   onPhotoClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const withTiles = useMapConsent() === 'granted';
+  const withTilesRef = useRef(withTiles);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
   // Bumped on every style load: overlays are re-installed and re-filled after a theme switch
   const [styleGeneration, setStyleGeneration] = useState(0);
@@ -137,7 +140,7 @@ const MapBoard: React.FC<MapBoardProps> = ({
   useEffect(() => {
     const instance = new maplibregl.Map({
       container: containerRef.current!,
-      style: buildBaseStyle(themeRef.current),
+      style: buildBaseStyle(themeRef.current, withTilesRef.current),
       center: [initialCenter[1], initialCenter[0]],
       zoom: 16,
       attributionControl: { compact: true },
@@ -179,12 +182,13 @@ const MapBoard: React.FC<MapBoardProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Theme switch: reload the base style (overlays come back through 'style.load')
+  // Theme or consent switch: reload the base style (overlays come back through 'style.load')
   useEffect(() => {
-    if (!map || themeRef.current === theme) return;
+    if (!map || (themeRef.current === theme && withTilesRef.current === withTiles)) return;
     themeRef.current = theme;
-    map.setStyle(buildBaseStyle(theme), { diff: false });
-  }, [map, theme]);
+    withTilesRef.current = withTiles;
+    map.setStyle(buildBaseStyle(theme, withTiles), { diff: false });
+  }, [map, theme, withTiles]);
 
   // --- Overlay data ---
   const segments = useMemo<FeatureCollection<LineString>>(() => {
