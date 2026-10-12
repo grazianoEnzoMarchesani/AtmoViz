@@ -1,7 +1,13 @@
 {
-  "name": "atmoviz2.99---stable",
+  "name": "atmoviz",
   "private": true,
-  "version": "0.0.0",
+  "license": "GPL-3.0-or-later",
+  "author": "Graziano Enzo Marchesani",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grazianoEnzoMarchesani/AtmoViz.git"
+  },
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

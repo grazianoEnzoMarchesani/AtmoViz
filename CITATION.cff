@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "AtmoViz"
+type: software
+abstract: >-
+  Atmo Viz is a browser-based tool for exploring geolocated environmental measurements
+  (temperature, humidity, pressure, VOC, particulate matter, air quality score) recorded
+  along a route. It replays the route on a map with a time-travel timeline, evaluates every
+  metric against health thresholds for four risk profiles, overlays geotagged FLIR thermal
+  photos, and exports a PDF report. All processing happens in the browser.
+authors:
+  - family-names: Marchesani
+    given-names: Graziano Enzo
+    orcid: "https://orcid.org/0000-0002-4723-5099"
+    affiliation: "Università di Camerino"
+  - family-names: Cocci Grifoni
+    given-names: Roberta
+    orcid: "https://orcid.org/0000-0002-7092-6293"
+    affiliation: "Università di Camerino"
+  - family-names: Riera
+    given-names: Dajla
+    orcid: "https://orcid.org/0000-0003-4349-1471"
+    affiliation: "Università di Camerino"
+repository-code: "https://github.com/grazianoEnzoMarchesani/AtmoViz"
+url: "https://grazianoenzomarchesani.github.io/AtmoViz/"
+license: GPL-3.0-or-later
+version: 1.0.0
+date-released: 2026-10-12
+keywords:
+  - air quality
+  - environmental monitoring
+  - data visualization
+  - mobile sensing
+  - thermal imaging
+  - microclimate
